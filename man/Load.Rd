@@ -14,7 +14,7 @@ Loads a meta definition.
 }
 \examples{
 filePath <- system.file("extdata", "sample_metadata.yaml", package="finPrice")
-db <- Load(filePath)
+context <- Load(filePath)
 
 }
 

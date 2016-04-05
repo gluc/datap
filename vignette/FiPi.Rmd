@@ -31,23 +31,25 @@ FiPi stands for **Fi**nancial **P**rocessing **i**nstructions. FiPi is a domain 
 
 FiPi is lightweight and technology-neutral. 
 
+## FiPi Benefits
+
 The main benefits of using FiPi are:
 
 * **formalisation**: FiPi forces you to formalise the data definitions used in financial software systems
 * **configurability**: FiPi allows you to define new instruments, data-sources, etc. without having to change the source code
 * **modularisation**: FiPi lets you define re-usable modules of pre-processing steps performed on aquired raw data
 
-# Artefacts and Components
+## Artefacts and Components
 
 FiPi is a standard, and as such is no more than a definition. In practice, you will need a few components to make FiPi work for you. Specifically, a typical setup could consist of:
 
-* one or more FiPi contexts, defining the timeseries you are interested in for your software application
-* one or more software libraries, providing the functionality to download, validate, and transform your timeseries. These libraries can be your own, or third-party open source or commercial libraries.
-* a FiPi interpreter, mapping the FiPi instructions to actual code in your libraries
+* one or more **FiPi Contexts**, each defined in a YAML file. The contexts define the timeseries you are interested in for your software application
+* one or more **software libraries**, providing the functionality to download, validate, and transform your timeseries. These libraries can be your own, or third-party open source or commercial libraries.
+* a **FiPi interpreter**, mapping the FiPi instructions to actual code in your libraries
 
-Then, from within the code of your software application, you will make a call against the FiPi interpreter's API, and in return get a timeseries object for a given timeseries ID.
+Then, from within the code of your software application, you will make a call against the FiPi interpreter's API, and in return get a timeseries object for a given ID.
 
-```{r}
+```{r, echo=FALSE}
 library(DiagrammeR)
 
 grViz("
@@ -88,13 +90,12 @@ digraph DAG {
   'FiPi Interpreter':ne -> 'Software Application':se [label = '4. return\ntimeseries'];
   #'Software Application' -> 'FiPi Context' [style=dotted];
 
-
-
 }
 ")
 
 ```
 
+This document is mostly about the **FiPi Context**: What is it? How do you define a context file? Etc.
 
 # Concepts
 
@@ -105,7 +106,7 @@ FiPi is all about financial timeseries. In FiPi, a timeseries is a well-defined 
 * it has an **ID**
 * it has a **semantic** meaning 
 
-For example, AAPL is *not* the Apple Inc. stock price, but it is, say, the daily close price of the Apple Inc. stock, sourced from Bloomberg, adjusted for dividends.
+So, for a given ID, say AAPL, FiPi defines **exactly** what AAPL refers to. For instance, AAPL is then *not* the "Apple Inc. stock price" (whatever that refers to). Instead, it is, say, the "daily close price of the Apple Inc. stock, sourced from Bloomberg, adjusted for dividends".
 
 These two properties (ID and semantic) assure that when you retrieve AAPL **within your context**, you know exactly what you are getting. It does **not** mean two subsequent calls will return the same thing, as new data or past corrections may result in differences.
 
@@ -117,9 +118,9 @@ Each FiPi Context is defined in a separate FiPi Definition File.
 
 Within a context, each ID must be unique. 
 
-However, it is common that a single financial instrument is represented more than once in a context. For example, you might have a timeseries **AAPL** for the unadjusted timeseries, and **AAPL_a** for the adjusted timeseries. 
+However, it is not uncommon that a single financial instrument is represented more than once in a context. For example, you might have a timeseries **AAPL** for the unadjusted timeseries, and **AAPL_a** for the adjusted timeseries. 
 
-Conversely, it is also very common to have multiple contexts for a single software application. For example, you could have a context for each of these modules: 
+Conversely, it is also very common to have multiple contexts for a single software application. For example, you could have a context for each of the following modules: 
 
 * data acquisition: this context defines the timeseries that need to be downloaded from data providers, together with validation and cleaning instructions
 * trading: this context defines, for example, actual futures contracts
@@ -131,7 +132,7 @@ Conversely, it is also very common to have multiple contexts for a single softwa
 
 Often, financial data needs to be pre-processed before it can be fed into an algorithm, used for a visualization, or saved into a database. 
 
-For example, data needs to be validated and cleaning needs to be done. In FiPi, these processing steps are called **instructions**. You can think of each instruction as a function, where the input is one or more timeseries, and the output is the transformed timeseries.
+For example, data needs to be validated, and cleaning needs to be done. In FiPi, these processing steps are called **instructions**. You can think of each instruction as a function, where the input is one or more timeseries, and the output is the transformed timeseries.
 
 ## Examples
 
@@ -175,7 +176,13 @@ Why did we chose this aproach? As much as we value portability, we attributed le
 
 Also, if portability is needed, there are sound strategies to ensure it. For example, you can write a library with implementations of your instructions, and distribute it together with your FiPi files. 
 
-## Processing Tree
+# Conditions
+
+With conditions, you can define what you expect as an input to an instruction (pre-condition), and what downstream instructions can expect as an output (post-condition).
+
+This is very handy, e.g. for plausibility checking.
+
+# Processing Tree
 
 Multiple instructions are combined into a **processing tree**. There is exactly one processing tree per timeseries. 
 

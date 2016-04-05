@@ -5,7 +5,7 @@
 #'
 #' @examples
 #' filePath <- system.file("extdata", "sample_metadata.yaml", package="finPrice")
-#' db <- Load(filePath)
+#' context <- Load(filePath)
 #'
 #' @importFrom yaml yaml.load
 #' @importFrom data.tree FromListExplicit Do
@@ -16,25 +16,69 @@ Load <- function(con) {
   lol <- list(children = lol)
   tree <- FromListExplicit(lol)
 
+  class(tree) <- c("context", class(tree))
+  tree$Do(function(node) class(node) <- c("timeseries", class(node)), filterFun = function(x) x$level == 2)
+
   #replace function
-  tree$Do(fun = ParseFun,
-          filterFun = function(node) !is.null(node$fun)
-          )
+  #tree$Do(fun = ParseFun,
+  #        filterFun = function(node) !is.null(node$fun)
+  #        )
 
   #return
   return (tree)
 }
 
+#' Plot a timeseries
+#'
+#' @examples
+#' filePath <- system.file("extdata", "sample_metadata.yaml", package="finPrice")
+#' context <- Load(filePath)
+#' plot(context$SPX)
+#'
+#' @export
+plot.timeseries <- function(x, ..., direction = c("climb", "descend"), pruneFun = NULL, engine = "dot") {
+  x <- Clone(x)
+  SetGraphStyle(x, rankdir = "BT")
+  SetEdgeStyle(x, dir = "back", penwidth = 2)
+
+  SetNodeStyle(x, style = "filled,rounded", shape = "component", fillcolor = "Seashell1",
+               fontname = "helvetica", tooltip = GetPlotTooltip, penwidth = 2)
+  x$Do(function(x) SetNodeStyle(x, shape = "invhouse", inherit = FALSE, keepExisting = TRUE), filterFun = function(x) x$type == "instruction")
+  x$Do(function(node) SetNodeStyle(node, shape = "box", fillcolor = "Khaki1", inherit = FALSE), filterFun = function(node) node$type == "warning")
+  x$Do(function(node) SetNodeStyle(node, shape = "box", fillcolor = "Tomato1", inherit = FALSE), filterFun = function(node) node$type == "error")
+
+  data.tree:::plot.Node(x, ..., direction, pruneFun, engine)
+  #callNextMethod()
+}
+
+
+
+GetPlotTooltip <- function(node) {
+  if (node$isRoot) return (GetDefaultTooltip(node))
+  res <- paste(paste("type:", node$type),
+               paste("fun:", node$fun),
+               paste("arguments:"),
+               paste(paste0("  ", names(node$arguments)), node$arguments, sep = ": ", collapse = "\n"),
+               sep = "\n")
+
+  if (!is.null(node$description)) {
+    res <- paste(res, paste("description:", node$description), sep = "\n")
+  }
+
+  return (res)
+
+}
+
 
 #' Get a timeseries
 #'
-#' @param code the code of the timeseries
-#' @param db the db object
+#' @param id the id of the timeseries
+#' @param context the context object
 #' @param ... and additional parameters that need to be passed to the function
 #'
 #' @export
-Get <- function(code, db, ...) {
-  db$Climb(code)$fun(...)
+GetData <- function(id, context, ...) {
+  context$Climb(id)$fun(...)
 }
 
 
