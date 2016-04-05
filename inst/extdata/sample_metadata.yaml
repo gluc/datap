@@ -1,0 +1,117 @@
+SPX:
+  longname: "S&P 500 daily close"
+  description: >
+    Quandl has priority over Yahoo.
+    Backfill weekends and holidays.
+    Cache for an hour.
+  fun:
+    name: memoise
+    arguments:
+      f: @children/fun
+      timeout: 3600
+  children:
+    fun:
+      name: magrittr::use_series
+      arguments:
+        xts: @children
+        series: "Close"
+    children:
+      fun:
+        name: na.locf
+        arguments:
+          xts: @children
+      children:
+        fun:
+          name: Regularize
+          arguments:
+            xts: @children
+        children:
+          fun:
+            name: Combine
+            arguments:
+              ...: @children
+          children:
+            Quandl:
+              fun:
+                name: Quandl::Quandl
+                arguments:
+                  ticker: "YAHOO/INDEX_GSPC"
+                  type: xts
+            Yahoo:
+              fun:
+                name: quantmod::getSymbols
+                arguments:
+                  Symbols = "^GSPC"
+                  auto.assign = FALSE
+
+
+SBaIs:
+  longname: "Swiss Banking Index Static"
+  description: >
+    A custom index consisting of 60% UBS,
+    40% CS
+  fun:
+    name: FixedWeightIndex
+    arguments:
+      components:
+        <<: *SBaIsChildren
+      weights:
+        UBSN: 0.6
+        CSGN: 0.4
+  children: &SBaIsChildren
+    #UBSN is not defined on top level,
+    #contrary to CSGN
+    UBSN:
+      fun:
+        name: Quandl::Quandl
+        arguments:
+          ticker: "GOOG/VTX_UBSN"
+          type: xts
+          collapse: daily
+    *CSGN
+
+CSGN:
+  longname: CSG Namen
+  description: Credit Suisse Namen
+  fun:
+    name: Quandl::Quandl
+    arguments:
+      ticker: "GOOG/VTX_CSGN"
+      type: xts
+      collapse: daily
+
+
+
+
+#index weights are also downloaded
+
+
+#proxy
+
+
+
+
+#1
+1:
+  longname: "1"
+  description: Static index staying at 1
+  fun:
+    name: Ones
+5p:
+  longname: "5% return"
+  description: >
+    Series starting at 1 and returning 5% per year
+  fun:
+    name: ConstantReturn
+    arguments:
+      r: 0.05
+10p:
+  longname: "10% return"
+  description: >
+    Series starting at 1 and returning 10% per year
+  fun:
+    name: ConstantReturn
+    arguments:
+      r: 0.1
+
+
