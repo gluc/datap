@@ -8,69 +8,74 @@ SPX:
   type: timeseries
   children:
     Cache:
-      type: instruction
+      type: transformation
       fun: memoise
       arguments:
         f: '@children/fun'
         timeout: 3600
       children:
         Close:
-          type: instruction
+          type: transformation
           fun: magrittr::use_series
           arguments:
             xts: '@children'
             series: Close
           children:
-            Fill NAs:
-              type: instruction
-              fun: na.locf
-              arguments:
-                xts: '@children'
+            NA Handling:
+              type: moduleref
+              name: NAs
               children:
-                NA Ratio:
-                  type: warning
-                  fun: NaRatio
+                Regularize:
+                  type: transformation
+                  fun: Regularize
                   arguments:
-                    timeseries: '@children'
+                    xts: '@children'
                   children:
-                    Regularize:
-                      type: instruction
-                      fun: Regularize
+                    Combine:
+                      type: transformation
+                      fun: Combine
                       arguments:
-                        xts: '@children'
+                        ...: '@children'
                       children:
-                        Combine:
-                          type: instruction
-                          fun: Combine
+                        MinLength Q:
+                          type: error
+                          fun: MinLength
                           arguments:
-                            ...: '@children'
+                            timeseries: '@children'
+                            minLength: 10
                           children:
-                            MinLength Q:
-                              type: error
-                              fun: MinLength
+                            Quandl:
+                              type: transformation
+                              fun: Quandl::Quandl
                               arguments:
-                                timeseries: '@children'
-                                minLength: 10
-                              children:
-                                Quandl:
-                                  type: instruction
-                                  fun: Quandl::Quandl
-                                  arguments:
-                                    ticker: "YAHOO/INDEX_GSPC"
-                                    type: xts
-                            MinLength Y:
-                              type: warning
-                              fun: MinLength
+                                ticker: "YAHOO/INDEX_GSPC"
+                                type: xts
+                        MinLength Y:
+                          type: warning
+                          fun: MinLength
+                          arguments:
+                            timeseries: '@children'
+                            minLength: 10
+                          children:
+                            Yahoo:
+                              type: transformation
+                              fun: quantmod::getSymbols
                               arguments:
-                                timeseries: '@children'
-                                minLength: 10
-                              children:
-                                Yahoo:
-                                  type: instruction
-                                  fun: quantmod::getSymbols
-                                  arguments:
-                                    Symbols: "^GSPC"
-                                    auto.assign: FALSE
+                                Symbols: "^GSPC"
+                                auto.assign: FALSE
 
 
-
+NA Handling:
+  type: module
+  children:
+    Fill NAs:
+      type: transformation
+      fun: na.locf
+      arguments:
+        xts: '@children'
+      children:
+        NA Ratio:
+          type: warning
+          fun: NaRatio
+          arguments:
+            timeseries: '@children'

@@ -17,7 +17,7 @@ Load <- function(con) {
   tree <- FromListExplicit(lol)
 
   class(tree) <- c("context", class(tree))
-  tree$Do(function(node) class(node) <- c("timeseries", class(node)), filterFun = function(x) x$level == 2)
+  tree$Do(function(node) class(node) <- c("specification", class(node)), filterFun = function(x) x$level == 2)
 
   #replace function
   #tree$Do(fun = ParseFun,
@@ -28,25 +28,27 @@ Load <- function(con) {
   return (tree)
 }
 
-#' Plot a timeseries
+#' Plot a timeseries or a module
 #'
 #' @examples
 #' filePath <- system.file("extdata", "sample_metadata.yaml", package="finPrice")
 #' context <- Load(filePath)
 #' plot(context$SPX)
+#' plot(context$`NA Handling`)
 #'
 #' @export
-plot.timeseries <- function(x, ..., direction = c("climb", "descend"), pruneFun = NULL, engine = "dot") {
+plot.specification <- function(x, ..., direction = c("climb", "descend"), pruneFun = NULL, engine = "dot") {
   x <- Clone(x)
   SetGraphStyle(x, rankdir = "BT")
   SetEdgeStyle(x, dir = "back", penwidth = 2)
 
-  SetNodeStyle(x, style = "filled,rounded", shape = "component", fillcolor = "Seashell1",
-               fontname = "helvetica", tooltip = GetPlotTooltip, penwidth = 2)
-  x$Do(function(x) SetNodeStyle(x, shape = "invhouse", inherit = FALSE, keepExisting = TRUE), filterFun = function(x) x$type == "instruction")
+  SetNodeStyle(x, style = "filled,rounded", fontname = "helvetica", tooltip = GetPlotTooltip, penwidth = 2)
+  x$Do(function(node) SetNodeStyle(node, shape = "invhouse", fillcolor = "Seashell1", inherit = FALSE, keepExisting = TRUE), filterFun = function(node) node$type == "transformation")
   x$Do(function(node) SetNodeStyle(node, shape = "box", fillcolor = "Khaki1", inherit = FALSE), filterFun = function(node) node$type == "warning")
   x$Do(function(node) SetNodeStyle(node, shape = "box", fillcolor = "Tomato1", inherit = FALSE), filterFun = function(node) node$type == "error")
-
+  x$Do(function(node) SetNodeStyle(node, shape = "larrow", fillcolor = "Seashell1", inherit = FALSE), filterFun = function(node) node$type == "moduleref")
+  x$Do(function(node) SetNodeStyle(node, shape = "rarrow", fillcolor = "Seashell1", inherit = TRUE, keepExisting = TRUE), filterFun = function(node) node$type == "module")
+  x$Do(function(node) SetNodeStyle(node, shape = "component", fillcolor = "Seashell1", inherit = TRUE, keepExisting = TRUE), filterFun = function(node) node$type == "timeseries")
   data.tree:::plot.Node(x, ..., direction, pruneFun, engine)
   #callNextMethod()
 }
