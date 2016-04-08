@@ -107,11 +107,11 @@ Regularize <- function(xts) {
 #' #Source 1 is considered best, but sometimes
 #' #it may have missing data which is available in 2
 #' #or 3.
-#' ubs <- Combine(ubs1, ubs2, ubs3)
+#' ubs <- Combine(list(ubs1, ubs2, ubs3))
 #'
 #' @export
-Combine <- function(...) {
-  listofxts <- list(...)
+Combine <- function(listofxts) {
+  #listofxts <- list(...)
   xts <- listofxts[[length(listofxts)]]
   for (i in (length(listofxts) - 1):1) {
     xts <- CombinePairs(listofxts[[i]], xts)
@@ -123,9 +123,45 @@ Combine <- function(...) {
 CombinePairs <- function(xts1, xts2) {
 
   xts <- merge(xts1, xts2)
-  for (col in colnames(xts1)) xts[is.na(xts[ , col]), col] <- xts[is.na(xts[ , col]), paste0(col, ".1")]
+  for (col in colnames(xts)[1:ncol(xts1)]) xts[is.na(xts[ , col]), col] <- xts[is.na(xts[ , col]), paste0(col, ".1")]
   xts <- xts[, colnames(xts1)]
 
   return (xts)
+}
+
+
+MinLength <- function(timeseries, minLength) {
+
+  res <- length(timeseries) >= minLength
+  text <- paste0("Length: ", length(timeseries), " (max: ", minLength, ")")
+  res <- list(ok = res, msg = text)
+
+  return (res)
+}
+
+
+#'@export
+SetNames <- function(x, names) {
+  names(x) <- names
+  return (x)
+}
+
+
+
+#'@export
+NaRatio <- function(timeseries, variable, maxRatio) {
+  naRatio <- length(which(is.na(timeseries[ , variable]))) / length(timeseries)
+  res <- naRatio <= maxRatio
+  text <- paste0("NA ratio: ", naRatio, " (max: ", maxRatio, ")")
+  res <- list(ok = res, msg = text)
+  return (res)
+}
+
+
+
+#' @importFrom memoise timeout memoise
+#' @export
+Cache <- function(f, timeoutSec) {
+  return ( memoise(f, ~timeout(timeoutSec)) )
 }
 

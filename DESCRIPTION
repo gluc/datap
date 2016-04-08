@@ -17,7 +17,8 @@ LazyData: TRUE
 Imports:
   yaml,
   magrittr,
-  data.tree
+  data.tree,
+  assertthat
 Depends:
     R (>= 3.0)
 RoxygenNote: 5.0.1

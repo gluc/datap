@@ -8,10 +8,10 @@ SPX:
   type: timeseries
   children:
     Cache:
-      type: transformation
-      fun: memoise
+      type: function
+      fun: Cache
       arguments:
-        f: '@children/fun'
+        f: '@children'
         timeout: 3600
       children:
         Close:
@@ -21,61 +21,65 @@ SPX:
             xts: '@children'
             series: Close
           children:
-            NA Handling:
-              type: moduleref
-              name: NAs
+            Fill NAs:
+              type: transformation
+              fun: na.locf
+              arguments:
+                object: '@children'
               children:
-                Regularize:
-                  type: transformation
-                  fun: Regularize
+                NA Ratio:
+                  type: warning
+                  fun: NaRatio
                   arguments:
-                    xts: '@children'
+                    timeseries: '@children'
+                    variable: Close
+                    maxRatio: 0.25
                   children:
-                    Combine:
+                    Regularize:
                       type: transformation
-                      fun: Combine
+                      fun: Regularize
                       arguments:
-                        ...: '@children'
+                        xts: '@children'
                       children:
-                        MinLength Q:
-                          type: error
-                          fun: MinLength
+                        Combine:
+                          type: transformation
+                          fun: Combine
                           arguments:
-                            timeseries: '@children'
-                            minLength: 10
+                            listofxts: '@children'
                           children:
-                            Quandl:
-                              type: transformation
-                              fun: Quandl::Quandl
+                            MinLength Q:
+                              type: error
+                              fun: MinLength
                               arguments:
-                                ticker: "YAHOO/INDEX_GSPC"
-                                type: xts
-                        MinLength Y:
-                          type: warning
-                          fun: MinLength
-                          arguments:
-                            timeseries: '@children'
-                            minLength: 10
-                          children:
-                            Yahoo:
-                              type: transformation
-                              fun: quantmod::getSymbols
+                                timeseries: '@children'
+                                minLength: 10
+                              children:
+                                Quandl:
+                                  type: transformation
+                                  fun: Quandl::Quandl
+                                  arguments:
+                                    code: "YAHOO/INDEX_GSPC"
+                                    type: xts
+                            MinLength Y:
+                              type: warning
+                              fun: MinLength
                               arguments:
-                                Symbols: "^GSPC"
-                                auto.assign: FALSE
+                                timeseries: '@children'
+                                minLength: 10
+                              children:
+                                SetNames:
+                                  type: transformation
+                                  fun: SetNames
+                                  arguments:
+                                    x: '@children'
+                                    names: [Open, High, Low, Close, Volume, 'Adjusted Close']
+                                  children:
+                                    Yahoo:
+                                      type: transformation
+                                      fun: quantmod::getSymbols
+                                      arguments:
+                                        Symbols: "^GSPC"
+                                        auto.assign: FALSE
 
 
-NA Handling:
-  type: module
-  children:
-    Fill NAs:
-      type: transformation
-      fun: na.locf
-      arguments:
-        xts: '@children'
-      children:
-        NA Ratio:
-          type: warning
-          fun: NaRatio
-          arguments:
-            timeseries: '@children'
+

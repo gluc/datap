@@ -4,14 +4,12 @@
 \alias{GetData}
 \title{Get a timeseries}
 \usage{
-GetData(id, context, ...)
+GetData(context, id)
 }
 \arguments{
-\item{id}{the id of the timeseries}
-
 \item{context}{the context object}
 
-\item{...}{and additional parameters that need to be passed to the function}
+\item{id}{the id of the timeseries}
 }
 \description{
 Get a timeseries

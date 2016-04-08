@@ -5,7 +5,7 @@
 \title{Combines two xts objects with similar data,
 giving preference to objects first in the list.}
 \usage{
-Combine(...)
+Combine(listofxts)
 }
 \arguments{
 \item{...}{xts objects to combine}
@@ -31,7 +31,7 @@ ubs3[1, 1] <- 58
 #Source 1 is considered best, but sometimes
 #it may have missing data which is available in 2
 #or 3.
-ubs <- Combine(ubs1, ubs2, ubs3)
+ubs <- Combine(list(ubs1, ubs2, ubs3))
 
 }
 
