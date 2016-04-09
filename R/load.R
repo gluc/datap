@@ -13,8 +13,8 @@
 Load <- function(con) {
   yamlString <- paste0(readLines(con), collapse = "\n")
   lol <- yaml.load(yamlString)
-  lol <- list(children = lol)
-  tree <- FromListExplicit(lol)
+
+  tree <- CreateTree(lol)
 
   class(tree) <- c("context", class(tree))
   tree$Do(function(node) class(node) <- c("specification", class(node)), filterFun = function(x) x$level == 2)
@@ -31,6 +31,39 @@ Load <- function(con) {
   #return
   return (tree)
 }
+
+
+
+#' @export
+CreateTree <- function(lol) {
+
+  rawTree <- FromListSimple(lol, nameName = NULL)
+
+  #only children of pipe and junction are true nodes
+  rawTree$Do(function(node) {
+                node$parent$RemoveChild("arguments")
+                node$parent$arguments <- as.list(node)
+             },
+             filterFun = function(node) node$name == "arguments")
+
+  rawTree$Do(function(pipeNode) {
+                parent <- pipeNode$children[[1]]
+                for (child in pipeNode$children[-1]) {
+                  pipeNode$RemoveChild(child$name)
+                  parent$AddChildNode(child)
+                  parent <- child
+                }
+
+              },
+             filterFun = function(node) !is.null(node$type) && node$type == "pipe")
+
+  return (rawTree)
+
+}
+
+
+
+
 
 #' Plot a timeseries or a module
 #'

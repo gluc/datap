@@ -6,80 +6,79 @@ SPX:
     Cache for an hour.
     Warn if newest value older than a day.
   type: timeseries
-  children:
+  pipe:
+    type: pipe
     Cache:
       type: function
       fun: Cache
       arguments:
-        f: '@children'
+        f: '@next'
         timeout: 3600
-      children:
-        Close:
-          type: transformation
-          fun: magrittr::use_series
+    Close:
+      type: transformation
+      fun: magrittr::use_series
+      arguments:
+        xts: '@next'
+        series: Close
+    Fill NAs:
+      type: transformation
+      fun: na.locf
+      arguments:
+        object: '@next'
+    NA Ratio:
+      type: warning
+      fun: NaRatio
+      arguments:
+        timeseries: '@next'
+        variable: Close
+        maxRatio: 0.25
+    Regularize:
+      type: transformation
+      fun: Regularize
+      arguments:
+        xts: '@next'
+    Combine:
+      type: junction
+      fun: Combine
+      arguments:
+        listofxts: '@next'
+      Quandl:
+        type: pipe
+        MinLength:
+          type: error
+          fun: MinLength
           arguments:
-            xts: '@children'
-            series: Close
-          children:
-            Fill NAs:
-              type: transformation
-              fun: na.locf
-              arguments:
-                object: '@children'
-              children:
-                NA Ratio:
-                  type: warning
-                  fun: NaRatio
-                  arguments:
-                    timeseries: '@children'
-                    variable: Close
-                    maxRatio: 0.25
-                  children:
-                    Regularize:
-                      type: transformation
-                      fun: Regularize
-                      arguments:
-                        xts: '@children'
-                      children:
-                        Combine:
-                          type: transformation
-                          fun: Combine
-                          arguments:
-                            listofxts: '@children'
-                          children:
-                            MinLength Q:
-                              type: error
-                              fun: MinLength
-                              arguments:
-                                timeseries: '@children'
-                                minLength: 10
-                              children:
-                                Quandl:
-                                  type: transformation
-                                  fun: Quandl::Quandl
-                                  arguments:
-                                    code: "YAHOO/INDEX_GSPC"
-                                    type: xts
-                            MinLength Y:
-                              type: warning
-                              fun: MinLength
-                              arguments:
-                                timeseries: '@children'
-                                minLength: 10
-                              children:
-                                SetNames:
-                                  type: transformation
-                                  fun: SetNames
-                                  arguments:
-                                    x: '@children'
-                                    names: [Open, High, Low, Close, Volume, 'Adjusted Close']
-                                  children:
-                                    Yahoo:
-                                      type: transformation
-                                      fun: quantmod::getSymbols
-                                      arguments:
-                                        Symbols: "^GSPC"
-                                        auto.assign: FALSE
+            timeseries: '@next'
+            minLength: 10
+        Quandl:
+          type: transformation
+          fun: Quandl::Quandl
+          arguments:
+            code: "YAHOO/INDEX_GSPC"
+            type: xts
+      Yahoo:
+        type: pipe
+        MinLength:
+          type: warning
+          fun: MinLength
+          arguments:
+            timeseries: '@next'
+            minLength: 10
+        SetNames:
+          type: transformation
+          fun: SetNames
+          arguments:
+            x: '@next'
+            names: [Open, High, Low, Close, Volume, 'Adjusted Close']
+          Yahoo:
+            type: transformation
+            fun: quantmod::getSymbols
+            arguments:
+              Symbols: "^GSPC"
+              auto.assign: FALSE
 
+#TODO: inheritable args
+#TODO: anchors/modules
 
-
+modules:
+  NA handling:
