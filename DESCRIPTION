@@ -18,7 +18,9 @@ Imports:
   yaml,
   magrittr,
   data.tree,
-  assertthat
+  assertthat,
+  xts,
+  zoo
 Depends:
     R (>= 3.0)
 RoxygenNote: 5.0.1

@@ -73,7 +73,8 @@ FixedWeightIndex <- function(weights, children) {
 #' Quandl("GOOG/VTX_UBSN", type = "xts", force_irregular = TRUE) %>%
 #' Regularize %>% na.locf -> ubs
 #'
-#'
+#' @importFrom xts xts
+#' @importFrom zoo index
 #' @export
 Regularize <- function(xts) {
 

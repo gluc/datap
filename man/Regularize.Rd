@@ -20,6 +20,5 @@ library(magrittr)
 Quandl("GOOG/VTX_UBSN", type = "xts", force_irregular = TRUE) \%>\%
 Regularize \%>\% na.locf -> ubs
 
-
 }
 

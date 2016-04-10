@@ -1,90 +1,91 @@
-NA handling: &NaHandling
-  type: pipe
-  Fill NAs:
-    type: transformation
-    fun: na.locf
-    arguments:
-      object: '@next'
-  NA Ratio:
-    type: warning
-    fun: NaRatio
-    arguments:
-      timeseries: '@next'
-      variable: Close
-      maxRatio: 0.25
-SPX:
-  type: pipe
-  longname: "S&P 500 daily close"
-  description: |
-    Quandl, fill missing values with Yahoo.
-    Backfill weekends and holidays.
-    Cache for an hour.
-    Warn if newest value older than a day.
-  globals:
-    timeseries: '@next'
-    variable: Close
-    maxNaRatio: 0.25
-    yahooSymbol: "^GSPC"
-    quandlCode: "YAHOO/INDEX_GSPC"
-  Transformation:
+modules:
+  NA handling: &NaHandling
     type: pipe
-    Cache:
-      type: function
-      fun: Cache
-      arguments:
-        f: '@next'
-        timeout: 3600
-    Close:
+    Fill NAs:
       type: transformation
-      fun: magrittr::use_series
+      fun: zoo::na.locf
       arguments:
-        xts: '@next'
-        series: Close
+        object: '@next'
+    NA Ratio:
+      type: warning
+      fun: NaRatio
+      arguments:
+        timeseries: '@next'
+        variable: Close
+        maxRatio: 0.25
+data:
+  SPX:
+    type: pipe
+    longname: "S&P 500 daily close"
+    description: |
+      Quandl, fill missing values with Yahoo.
+      Backfill weekends and holidays.
+      Cache for an hour.
+      Warn if newest value older than a day.
+    globals:
+      variable: Close
+      maxNaRatio: 0.25
+      yahooSymbol: "^GSPC"
+      quandlCode: "YAHOO/INDEX_GSPC"
+    Transformation:
+      type: pipe
+      Cache:
+        type: function
+        fun: Cache
+        arguments:
+          f: '@next'
+          timeout: 3600
+      Close:
+        type: transformation
+        fun: magrittr::use_series
+        arguments:
+          a: '@next'
+          b: 'Close'
+    NAs: *NaHandling
     Regularize:
-      type: transformation
-      fun: Regularize
+        type: transformation
+        fun: Regularize
+        arguments:
+          xts: '@next'
+    Combine:
+      type: junction
+      fun: Combine
       arguments:
-        xts: '@next'
-  NAs: *NaHandling
-  Combine:
-    type: junction
-    fun: Combine
-    arguments:
-      listofxts: '@next'
-    Quandl:
-      type: pipe
-      MinLength:
-        type: error
-        fun: MinLength
-        arguments:
-          timeseries: '@next'
-          minLength: 10
+        listofxts: '@next'
       Quandl:
-        type: transformation
-        fun: Quandl::Quandl
-        arguments:
-          code: "YAHOO/INDEX_GSPC"
-          type: xts
-    Yahoo:
-      type: pipe
-      MinLength:
-        type: warning
-        fun: MinLength
-        arguments:
-          timeseries: '@next'
-          minLength: 10
-      SetNames:
-        type: transformation
-        fun: SetNames
-        arguments:
-          x: '@next'
-          names: [Open, High, Low, Close, Volume, 'Adjusted Close']
-        Yahoo:
-          type: transformation
-          fun: quantmod::getSymbols
+        type: pipe
+        MinLength:
+          type: error
+          fun: MinLength
           arguments:
-            Symbols: "^GSPC"
-            auto.assign: FALSE
+            timeseries: '@next'
+            minLength: 10
+        Quandl:
+          type: transformation
+          fun: Quandl::Quandl
+          arguments:
+            code: "YAHOO/INDEX_GSPC"
+            type: xts
+      Yahoo:
+        type: pipe
+        MinLength:
+          type: warning
+          fun: MinLength
+          arguments:
+            timeseries: '@next'
+            minLength: 10
+        SetNames:
+          type: transformation
+          fun: SetNames
+          arguments:
+            x: '@next'
+            names: [Open, High, Low, Close, Volume, 'Adjusted Close']
+          Yahoo:
+            type: transformation
+            fun: quantmod::getSymbols
+            arguments:
+              Symbols: "^GSPC"
+              auto.assign: FALSE
 
 #TODO: inheritable args
 #TODO: anchors/modules

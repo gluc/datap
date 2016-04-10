@@ -22,7 +22,7 @@ Load <- function(con) {
   #replace function
   tree$Do(function(node) node$funName <- node$fun,
           traversal = "post-order",
-          filterFun = isNotRoot)
+          filterFun = function(node) !is.null(node$fun))
 
   tree$Do(fun = ParseFun,
           traversal = "post-order",
@@ -41,10 +41,23 @@ CreateTree <- function(lol) {
 
   #only children of pipe and junction are true nodes
   rawTree$Do(function(node) {
-                node$parent$RemoveChild("arguments")
-                node$parent$arguments <- as.list(node)
-             },
-             filterFun = function(node) node$name == "arguments")
+    parent <- node$parent
+    parent$RemoveChild("arguments")
+    nd <- as.list(node)
+    nd <- nd[node$fields]
+    parent$arguments <- nd
+  },
+  filterFun = function(node) node$name == "arguments")
+
+  rawTree$Do(function(node) {
+    parent <- node$parent
+    parent$RemoveChild("globals")
+    nd <- as.list(node)
+    nd <- nd[node$fields]
+    parent$globals <- nd
+
+  },
+  filterFun = function(node) node$name == "globals")
 
   rawTree$Do(function(pipeNode) {
                 parent <- pipeNode$children[[1]]
@@ -57,7 +70,22 @@ CreateTree <- function(lol) {
               },
              filterFun = function(node) !is.null(node$type) && node$type == "pipe")
 
-  return (rawTree)
+  rawTree$Do(function(pipeNode) {
+                child <- pipeNode$children[[1]]
+                pipeNode$RemoveChild(child$name)
+                pipeNode$parent$AddChildNode(child)
+                pipeNode$parent$RemoveChild(pipeNode$name)
+            },
+            filterFun = function(node) node$level > 3 &&
+                                       !is.null(node$type) &&
+                                       node$type == "pipe" &&
+                                       !is.null(node$parent$type) &&
+                                       node$parent$type != "junction")
+
+  ctx <- rawTree$data
+  ctx$parent <- NULL
+  ctx$name <- "Context"
+  return (ctx)
 
 }
 
@@ -129,22 +157,18 @@ GetData <- function(context, id) {
 ParseFun <- function(node) {
 
   # warning, error and transformation
-  if (node$type != "timeseries") {
-
     funNme <- node$fun
     funArgs <- node$arguments
+    funArgsNms <- names(funArgs)
 
-
+    print (node$name)
     if (node$type %in% c("warning", "error")) {
 
-
-
       Wrn <- function() {
-
         children <- lapply(node$children, function(node) node$fun())
-        if ("@children" %in% funArgs) {
+        if ("@next" %in% funArgs) {
           if (node$count == 1) children <- children[[1]]
-          funArgs[[which(funArgs == "@children")]] <- children
+          funArgs[[which(funArgs == "@next")]] <- children
         }
 
         ok <- do.call.intrnl(funNme, funArgs)
@@ -156,12 +180,12 @@ ParseFun <- function(node) {
         return (children)
       }
       node$fun <- Wrn
-    } else if (node$type == "transformation") {
+    } else if (node$type %in% c("transformation", "junction")) {
       CallStep <- function() {
-        if ("@children" %in% funArgs) {
+        if ("@next" %in% funArgs) {
           children <- lapply(node$children, function(node) node$fun())
           if (node$count == 1) children <- children[[1]]
-          funArgs[[which(funArgs == "@children")]] <- children
+          funArgs[[which(funArgs == "@next")]] <- children
         }
 
         #if (node$name == "Combine") browser()
@@ -172,35 +196,28 @@ ParseFun <- function(node) {
 
       node$fun <- CallStep
     } else if (node$type == "function") {
-        if ("@children" %in% funArgs) {
+        if ("@next" %in% funArgs) {
           children <- lapply(node$children, function(node) node$fun)
           if (node$count == 1) children <- children[[1]]
-          funArgs[[which(funArgs == "@children")]] <- children
+          funArgs[[which(funArgs == "@next")]] <- children
         }
         res <- do.call.intrnl(funNme, funArgs)
         node$fun <- res
-    } else stop(paste0("Unknown node type ", node$type))
+    } else if (node$type == "pipe") {
+      node$fun <- function() node$children[[1]]$fun()
+    } else if (node$type == "timeseries") {
 
-  }
+      CallTimeseries <- function() {
+        #assert_that(node$count == 1)
+        node$children[[1]]$fun()
+      }
 
-  # timeseries
-  if (node$type == "timeseries") {
+      node$fun <- CallTimeseries
 
-    CallTimeseries <- function() {
-      #assert_that(node$count == 1)
-      node$children[[1]]$fun()
+    } else {
+       stop(paste0("Unknown node type ", node$type))
+
     }
-
-    node$fun <- CallTimeseries
-
-  }
-
-  #module
-  #tbd
-
-  # timeseriesref and moduleref
-  #tbd
-
 
 
 }
