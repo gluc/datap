@@ -1,6 +1,6 @@
-Package: finPrice
+Package: CodaPipeR
 Type: Package
-Title: Manage Financial Timeseries
+Title: Configurable Data Pipe R reference implementation
 Version: 0.1.0
 Author: Christoph Glur
 Maintainer: Christoph Glur <christoph.glur@ipub.com>

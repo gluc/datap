@@ -4,7 +4,7 @@
 #' @param con a connection containing the meta data
 #'
 #' @examples
-#' filePath <- system.file("extdata", "sample_metadata.yaml", package="finPrice")
+#' filePath <- system.file("extdata", "context1.yaml", package="finPrice")
 #' context <- Load(filePath)
 #'
 #' @importFrom yaml yaml.load
