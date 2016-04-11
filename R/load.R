@@ -4,7 +4,7 @@
 #' @param con a connection containing the meta data
 #'
 #' @examples
-#' filePath <- system.file("extdata", "context1.yaml", package="finPrice")
+#' filePath <- system.file("extdata", "context1.yaml", package="CodaPipeR")
 #' context <- Load(filePath)
 #'
 #' @importFrom yaml yaml.load
@@ -18,11 +18,6 @@ Load <- function(con) {
 
   class(tree) <- c("context", class(tree))
   tree$Do(function(node) class(node) <- c("specification", class(node)), filterFun = function(x) x$level == 2)
-
-  #replace function
-  tree$Do(function(node) node$funName <- node$fun,
-          traversal = "post-order",
-          filterFun = function(node) !is.null(node$fun))
 
   tree$Do(fun = ParseFun,
           traversal = "post-order",
@@ -127,7 +122,7 @@ plot.specification <- function(x, ..., direction = c("climb", "descend"), pruneF
 GetPlotTooltip <- function(node) {
   if (node$isRoot) return (GetDefaultTooltip(node))
   res <- paste(paste("type:", node$type),
-               paste("fun:", node$funName),
+               paste("function:", node$funName),
                paste("arguments:"),
                #paste(paste0("  ", names(node$arguments)), node$arguments, to = "ASCII", sub = "" , sep = ": ", collapse = "\n"), #causes error in DiagrammeR. Need to escape @ and ^ and possibly \
                sep = "\n")
@@ -157,7 +152,7 @@ GetData <- function(context, id) {
 ParseFun <- function(node) {
 
   # warning, error and transformation
-    funNme <- node$fun
+    funNme <- node$`function`
     funArgs <- node$arguments
     funArgsNms <- names(funArgs)
 
@@ -226,7 +221,7 @@ ParseFun <- function(node) {
 
 
 do.call.intrnl <- function(what, args) {
-  if(is.character(what)){
+  if(is.character(what)) {
     fn <- strsplit(what, "::")[[1]]
     if(length(fn)==1) {
       fun <- fn[[1]]

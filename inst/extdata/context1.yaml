@@ -3,12 +3,12 @@ modules:
     type: pipe
     Fill NAs:
       type: transformation
-      fun: zoo::na.locf
+      function: zoo::na.locf
       arguments:
         object: '@next'
     NA Ratio:
       type: warning
-      fun: NaRatio
+      function: NaRatio
       arguments:
         timeseries: '@next'
         variable: Close
@@ -31,38 +31,38 @@ data:
       type: pipe
       Cache:
         type: function
-        fun: Cache
+        function: Cache
         arguments:
           f: '@next'
           timeout: 3600
       Close:
         type: transformation
-        fun: magrittr::use_series
+        function: magrittr::use_series
         arguments:
           a: '@next'
           b: 'Close'
     NAs: *NaHandling
     Regularize:
         type: transformation
-        fun: Regularize
+        function: Regularize
         arguments:
           xts: '@next'
     Combine:
       type: junction
-      fun: Combine
+      function: Combine
       arguments:
         listofxts: '@next'
       Quandl:
         type: pipe
         MinLength:
           type: error
-          fun: MinLength
+          function: MinLength
           arguments:
             timeseries: '@next'
             minLength: 10
         Quandl:
           type: transformation
-          fun: Quandl::Quandl
+          function: Quandl::Quandl
           arguments:
             code: "YAHOO/INDEX_GSPC"
             type: xts
@@ -70,19 +70,19 @@ data:
         type: pipe
         MinLength:
           type: warning
-          fun: MinLength
+          function: MinLength
           arguments:
             timeseries: '@next'
             minLength: 10
         SetNames:
           type: transformation
-          fun: SetNames
+          function: SetNames
           arguments:
             x: '@next'
             names: [Open, High, Low, Close, Volume, 'Adjusted Close']
           Yahoo:
             type: transformation
-            fun: quantmod::getSymbols
+            function: quantmod::getSymbols
             arguments:
               Symbols: "^GSPC"
               auto.assign: FALSE
