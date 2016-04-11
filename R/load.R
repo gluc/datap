@@ -46,13 +46,13 @@ CreateTree <- function(lol) {
 
   rawTree$Do(function(node) {
     parent <- node$parent
-    parent$RemoveChild("globals")
+    parent$RemoveChild("variables")
     nd <- as.list(node)
     nd <- nd[node$fields]
-    parent$globals <- nd
+    parent$variables <- nd
 
   },
-  filterFun = function(node) node$name == "globals")
+  filterFun = function(node) node$name == "variables")
 
   rawTree$Do(function(pipeNode) {
                 parent <- pipeNode$children[[1]]

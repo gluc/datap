@@ -22,8 +22,8 @@ data:
       Backfill weekends and holidays.
       Cache for an hour.
       Warn if newest value older than a day.
-    globals:
-      variable: Close
+    variables:
+      series: Close
       maxNaRatio: 0.25
       yahooSymbol: "^GSPC"
       quandlCode: "YAHOO/INDEX_GSPC"
