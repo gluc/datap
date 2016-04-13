@@ -13,34 +13,20 @@ modules:
         timeseries: '@pipe'
         variable: Close
         maxRatio: 0.25
-data:
-  SPX:
+  Transformation: &QYPipe
     type: pipe
-    longname: "S&P 500 daily close"
-    description: |
-      Quandl, fill missing values with Yahoo.
-      Backfill weekends and holidays.
-      Cache for an hour.
-      Warn if newest value older than a day.
-    variables:
-      series: Close
-      maxNaRatio: 0.25
-      yahooSymbol: "^GSPC"
-      quandlCode: "YAHOO/INDEX_GSPC"
-    Transformation:
-      type: pipe
-      Cache:
-        type: function
-        function: Cache
-        arguments:
-          f: '@pipe'
-          timeout: 3600
-      Close:
-        type: transformation
-        function: magrittr::use_series
-        arguments:
-          a: '@pipe'
-          b: 'Close'
+    Cache:
+      type: function
+      function: Cache
+      arguments:
+        f: '@pipe'
+        timeout: 3600
+    Close:
+      type: transformation
+      function: magrittr::use_series
+      arguments:
+        a: '@pipe'
+        b: 'Close'
     NAs: *NaHandling
     Regularize:
         type: transformation
@@ -86,6 +72,36 @@ data:
             arguments:
               Symbols: "^GSPC"
               auto.assign: FALSE
+data:
+  SPX:
+    type: pipe
+    longname: "S&P 500 daily close"
+    description: |
+      Quandl, fill missing values with Yahoo.
+      Backfill weekends and holidays.
+      Cache for an hour.
+      Warn if newest value older than a day.
+    variables:
+      series: Close
+      maxNaRatio: 0.25
+      yahooSymbol: "^GSPC"
+      quandlCode: "YAHOO/INDEX_GSPC"
+    pipe: *QYPipe
+  AAPL:
+    type: pipe
+    longname: "apple"
+    description: |
+      Quandl, fill missing values with Yahoo.
+      Backfill weekends and holidays.
+      Cache for an hour.
+      Warn if newest value older than a day.
+    variables:
+      series: Close
+      maxNaRatio: 0.25
+      yahooSymbol: "AAPL"
+      quandlCode: "YAHOO/AAPL"
+    pipe: *QYPipe
+
 
 #TODO: inheritable args
 #TODO: anchors/modules
