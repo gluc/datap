@@ -28,7 +28,7 @@ Load <- function(con) {
 }
 
 
-
+#' @importFrom data.tree FromListSimple
 #' @export
 CreateTree <- function(lol) {
 
@@ -149,6 +149,7 @@ GetData <- function(context, id) {
 
 
 #' @importFrom assertthat assert_that
+#' @importFrom data.tree Traverse Get
 ParseFun <- function(node) {
 
   # warning, error and transformation
@@ -157,44 +158,49 @@ ParseFun <- function(node) {
     funArgsNms <- names(funArgs)
 
     print (node$name)
+
+    #parse variables (except @pipe)
+    for (argNme in names(funArgs)) {
+      v <- funArgs[[argNme]]
+      if (!identical(v, "@pipe") && identical(substr(v, 1, 1), "@")) {
+        v <- substr(v, 2, nchar(v))
+        tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))[1]
+        vval <- Get(tr, function(x) x$variables[[v]])[[1]]
+        funArgs[[argNme]] <- vval
+      }
+    }
+
     if (node$type %in% c("warning", "error")) {
 
       Wrn <- function() {
         children <- lapply(node$children, function(node) node$fun())
-        if ("@next" %in% funArgs) {
-          if (node$count == 1) children <- children[[1]]
-          funArgs[[which(funArgs == "@next")]] <- children
-        }
-
+        funArgs <- ParsePipe(node, funArgs, children)
         ok <- do.call.intrnl(funNme, funArgs)
         if (!ok[[1]]) {
           if (node$type == "warning") warning(paste0("step ", node$name, " raised warning:", ok[[2]]))
           if (node$type == "error") stop(paste0("step ", node$name, " raised error:", ok[[2]]))
         }
         print(paste0("Processed ", node$name))
-        return (children)
+        return (children[[1]])
       }
       node$fun <- Wrn
     } else if (node$type %in% c("transformation", "junction")) {
       CallStep <- function() {
-        if ("@next" %in% funArgs) {
-          children <- lapply(node$children, function(node) node$fun())
-          if (node$count == 1) children <- children[[1]]
-          funArgs[[which(funArgs == "@next")]] <- children
-        }
+
+        funArgs <- ParsePipe(node, funArgs)
 
         #if (node$name == "Combine") browser()
         res <- do.call.intrnl(funNme, funArgs)
         print(paste0("Processed ", node$name))
         return (res)
       }
-
+      #if (node$name == "Quandl") browser()
       node$fun <- CallStep
     } else if (node$type == "function") {
-        if ("@next" %in% funArgs) {
+        if ("@pipe" %in% funArgs) {
           children <- lapply(node$children, function(node) node$fun)
           if (node$count == 1) children <- children[[1]]
-          funArgs[[which(funArgs == "@next")]] <- children
+          funArgs[[which(funArgs == "@pipe")]] <- children
         }
         res <- do.call.intrnl(funNme, funArgs)
         node$fun <- res
@@ -216,6 +222,18 @@ ParseFun <- function(node) {
 
 
 }
+
+
+ParsePipe <- function(node, funArgs, children = NULL) {
+  if ("@pipe" %in% funArgs) {
+    if (is.null(children)) children <- lapply(node$children, function(node) node$fun())
+    if (node$count == 1) children <- children[[1]]
+    funArgs[[which(funArgs == "@pipe")]] <- children
+  }
+  return (funArgs)
+}
+
+
 
 
 

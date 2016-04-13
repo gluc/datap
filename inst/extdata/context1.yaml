@@ -5,12 +5,12 @@ modules:
       type: transformation
       function: zoo::na.locf
       arguments:
-        object: '@next'
+        object: '@pipe'
     NA Ratio:
       type: warning
       function: NaRatio
       arguments:
-        timeseries: '@next'
+        timeseries: '@pipe'
         variable: Close
         maxRatio: 0.25
 data:
@@ -33,38 +33,38 @@ data:
         type: function
         function: Cache
         arguments:
-          f: '@next'
+          f: '@pipe'
           timeout: 3600
       Close:
         type: transformation
         function: magrittr::use_series
         arguments:
-          a: '@next'
+          a: '@pipe'
           b: 'Close'
     NAs: *NaHandling
     Regularize:
         type: transformation
         function: Regularize
         arguments:
-          xts: '@next'
+          xts: '@pipe'
     Combine:
       type: junction
       function: Combine
       arguments:
-        listofxts: '@next'
+        listofxts: '@pipe'
       Quandl:
         type: pipe
         MinLength:
           type: error
           function: MinLength
           arguments:
-            timeseries: '@next'
+            timeseries: '@pipe'
             minLength: 10
         Quandl:
           type: transformation
           function: Quandl::Quandl
           arguments:
-            code: "YAHOO/INDEX_GSPC"
+            code: "@quandlCode"
             type: xts
       Yahoo:
         type: pipe
@@ -72,13 +72,13 @@ data:
           type: warning
           function: MinLength
           arguments:
-            timeseries: '@next'
+            timeseries: '@pipe'
             minLength: 10
         SetNames:
           type: transformation
           function: SetNames
           arguments:
-            x: '@next'
+            x: '@pipe'
             names: [Open, High, Low, Close, Volume, 'Adjusted Close']
           Yahoo:
             type: transformation
