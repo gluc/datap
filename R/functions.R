@@ -134,7 +134,7 @@ CombinePairs <- function(xts1, xts2) {
 MinLength <- function(timeseries, minLength) {
 
   res <- length(timeseries) >= minLength
-  text <- paste0("Length: ", length(timeseries), " (max: ", minLength, ")")
+  text <- paste0("Length: ", length(timeseries), " (min: ", minLength, ")")
   res <- list(ok = res, msg = text)
 
   return (res)
@@ -165,4 +165,7 @@ NaRatio <- function(timeseries, variable, maxRatio) {
 Cache <- function(f, timeoutSec) {
   return ( memoise(f, ~timeout(timeoutSec)) )
 }
+
+
+
 

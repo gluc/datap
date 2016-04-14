@@ -19,7 +19,7 @@ modules:
       type: function
       function: Cache
       arguments:
-        f: '@pipe'
+        f: '@pipefun'
         timeout: 3600
     Close:
       type: transformation
@@ -46,8 +46,8 @@ modules:
           arguments:
             timeseries: '@pipe'
             minLength: 10
-        Quandl:
-          type: transformation
+        DownloadQuandl:
+          type: source
           function: Quandl::Quandl
           arguments:
             code: "@quandlCode"
@@ -66,29 +66,39 @@ modules:
           arguments:
             x: '@pipe'
             names: [Open, High, Low, Close, Volume, 'Adjusted Close']
-          Yahoo:
-            type: transformation
+          DownloadYahoo:
+            type: source
             function: quantmod::getSymbols
             arguments:
               Symbols: "^GSPC"
               auto.assign: FALSE
 data:
   SPX:
-    type: pipe
+    type: tap
     longname: "S&P 500 daily close"
     description: |
       Quandl, fill missing values with Yahoo.
       Backfill weekends and holidays.
       Cache for an hour.
       Warn if newest value older than a day.
+    parameters:
+      dteRange: 1990-01-01/2010-01-01
     variables:
       series: Close
       maxNaRatio: 0.25
       yahooSymbol: "^GSPC"
       quandlCode: "YAHOO/INDEX_GSPC"
-    pipe: *QYPipe
+    Pipe:
+      type: pipe
+      DateRange:
+        type: transformation
+        function: magrittr::extract
+        arguments:
+          - '@pipe'
+          - '@dteRange'
+      QYPipe: *QYPipe
   AAPL:
-    type: pipe
+    type: tap
     longname: "apple"
     description: |
       Quandl, fill missing values with Yahoo.
