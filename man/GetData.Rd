@@ -2,16 +2,18 @@
 % Please edit documentation in R/load.R
 \name{GetData}
 \alias{GetData}
-\title{Get a timeseries}
+\title{Get data from a tap}
 \usage{
-GetData(context, id)
+GetData(context, tapName, ...)
 }
 \arguments{
 \item{context}{the context object}
 
-\item{id}{the id of the timeseries}
+\item{tapName}{the name of the tap}
+
+\item{...}{any parameters to be passed on to the tap}
 }
 \description{
-Get a timeseries
+Get data from a tap
 }
 

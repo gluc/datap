@@ -8,7 +8,7 @@
 #'
 #' @importFrom data.tree Clone SetGraphStyle SetEdgeStyle SetNodeStyle
 #' @export
-plot.specification <- function(x, ..., direction = c("climb", "descend"), pruneFun = NULL, engine = "dot") {
+plot.tap <- function(x, ..., direction = c("climb", "descend"), pruneFun = NULL, engine = "dot") {
   x <- Clone(x)
   SetGraphStyle(x, rankdir = "BT")
   SetEdgeStyle(x, dir = "back", penwidth = 2)
@@ -26,3 +26,27 @@ plot.specification <- function(x, ..., direction = c("climb", "descend"), pruneF
   data.tree:::plot.Node(x, ..., direction, pruneFun, engine)
   #callNextMethod()
 }
+
+
+
+
+
+
+
+#' @importFrom data.tree GetDefaultTooltip
+GetPlotTooltip <- function(node) {
+  if (node$isRoot) return (GetDefaultTooltip(node))
+  res <- paste(paste("type:", node$type),
+               paste("function:", node$funName),
+               paste("arguments:"),
+               #paste(paste0("  ", names(node$arguments)), node$arguments, to = "ASCII", sub = "" , sep = ": ", collapse = "\n"), #causes error in DiagrammeR. Need to escape @ and ^ and possibly \
+               sep = "\n")
+
+  if (!is.null(node$description)) {
+    res <- paste(res, paste("description:", node$description), sep = "\n")
+  }
+
+  return (res)
+
+}
+

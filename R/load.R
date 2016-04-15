@@ -17,12 +17,20 @@ Load <- function(con) {
   tree <- CreateTree(lol)
 
   class(tree) <- c("context", class(tree))
-  tree$Do(function(node) class(node) <- c("specification", class(node)), filterFun = function(x) x$level == 2)
+  tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) x$level == 2)
 
-  tree$Do(fun = ParseFun,
+  tree$Do(function(node) node$parameters <- GetUpstreamParameters(node))
+  tree$Do(function(node) node$arguments <- ParseVariables(node))
+
+  tree$Do(fun = function(node) node$fun <- ParseFun(node),
           traversal = "post-order",
-          filterFun = isNotRoot)
+          filterFun = function(x) x$level > 2)
 
+
+  tree$Do(fun = function(node) node$fun <- ParseTapFun(node),
+          filterFun = function(x) identical(x$type, "tap"))
+
+  tree$TapNames <- function() names(tree$children)
   #return
   return (tree)
 }
@@ -33,6 +41,7 @@ Load <- function(con) {
 CreateTree <- function(lol) {
 
   rawTree <- FromListSimple(lol, nameName = NULL)
+  rawTree$Prune(pruneFun = function(node) node$level != 2 || identical(node$type, "tap"))
 
   #only children of pipe and junction are true nodes
   RemoveNodes(rawTree, "arguments", lol)
@@ -62,8 +71,7 @@ CreateTree <- function(lol) {
 
   SimplifyTree(rawTree)
 
-  ctx <- rawTree$data
-  ctx$parent <- NULL
+  ctx <- rawTree
   ctx$name <- "Context"
   return (ctx)
 
@@ -107,35 +115,42 @@ RemoveNodes <- function(rawTree, name, lol) {
 
 
 
-
-#' @importFrom data.tree GetDefaultTooltip
-GetPlotTooltip <- function(node) {
-  if (node$isRoot) return (GetDefaultTooltip(node))
-  res <- paste(paste("type:", node$type),
-               paste("function:", node$funName),
-               paste("arguments:"),
-               #paste(paste0("  ", names(node$arguments)), node$arguments, to = "ASCII", sub = "" , sep = ": ", collapse = "\n"), #causes error in DiagrammeR. Need to escape @ and ^ and possibly \
-               sep = "\n")
-
-  if (!is.null(node$description)) {
-    res <- paste(res, paste("description:", node$description), sep = "\n")
-  }
-
-  return (res)
-
-}
-
-
-#' Get a timeseries
+#' Get data from a tap
 #'
-#' @param id the id of the timeseries
+#' @param tapName the name of the tap
 #' @param context the context object
+#' @param ... any parameters to be passed on to the tap
 #'
 #' @export
-GetData <- function(context, id) {
-  context$Climb(id)$fun(...)
+GetData <- function(context, tapName, ...) {
+  context$Climb(tapName)$fun(...)
 }
 
+
+VARIABLE_RESERVED_NAMES_CONST <- c( 'pipe',
+                                    'pipefun')
+
+
+ParseVariables <- function(node) {
+  funNme <- node$`function`
+  funArgs <- node$arguments
+  funArgsNms <- names(funArgs)
+  #parse variables (except @pipe, @pipefun, etc)
+  for (argNme in names(funArgs)) {
+    v <- funArgs[[argNme]]
+    if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
+      print(v)
+      v <- substr(v, 2, nchar(v))
+      tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))
+      if (length(tr) > 0) {
+        vval <- Get(tr[1], function(x) x$variables[[v]])[[1]]
+        funArgs[[argNme]] <- vval
+      }
+    }
+
+  }
+  return (funArgs)
+}
 
 
 #' @importFrom assertthat assert_that
@@ -149,125 +164,76 @@ ParseFun <- function(node) {
 
     print (node$name)
 
-    #parse variables (except @pipe)
-    for (argNme in names(funArgs)) {
-      v <- funArgs[[argNme]]
-      if (!identical(v, "@pipe") && identical(substr(v, 1, 1), "@")) {
-        print(v)
-        v <- substr(v, 2, nchar(v))
-        tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))
-        if (length(tr) > 0) {
-          vval <- Get(tr[1], function(x) x$variables[[v]])[[1]]
-          funArgs[[argNme]] <- vval
-        }
-      }
+    CallStep <- function() {
 
-    }
+      #parse parameters
+      myArgs <- GetFunctionArguments(CallStep)
 
-    if (node$type %in% c("warning", "error")) {
+      funArgs <- ParseParameters(node, funArgs, myArgs)
 
-      parameters <- GetParametersUsedBelow(node)
-      funArgs <- ParseParameters(node, funArgs, parameters)
-
-      Wrn <- function() {
-
-        children <- lapply(node$children, function(child) {
-          childParameters <- GetParametersUsedBelow(child)
-          if (length(childParameters) == 0) args <- list()
-          else args <- get(names(formals(CallStep)))[childParameters]
-          do.call(child$fun, args)
-        })
+      if ("@pipe" %in% funArgs) {
+        children <- lapply(node$children, function(child) do.call(child$fun, myArgs[names(child$parameters)]))
         if (node$count == 1) children <- children[[1]]
-        if ("@pipe" %in% funArgs) {
-          funArgs[[which(funArgs == "@pipe")]] <- children
+        #if (node$name == "DateRange") browser()
+        funArgs[[which(funArgs == "@pipe")]] <- children
+      }
+      if ("@pipefun" %in% funArgs) {
+        children <- lapply(node$children, function(child) child$fun)
+        if (node$count == 1) children <- children[[1]]
+        funArgs[[which(funArgs == "@pipefun")]] <- children
+      }
+      res <- do.call.intrnl(funNme, funArgs)
+      if (node$type %in% c("warning", "error")) {
+        if (!res[[1]]) {
+          if (node$type == "warning") warning(paste0("step ", node$name, " raised warning:", res[[2]]))
+          if (node$type == "error") stop(paste0("step ", node$name, " raised error:", res[[2]]))
         }
-        if ("@pipefun" %in% funArgs) {
-          childfuns <- lapply(node$children, function(child) child$fun)
-          if (node$count == 1) childfuns <- childfuns[[1]]
-          funArgs[[which(funArgs == "@pipefun")]] <- childfuns
-        }
-
-
-        ok <- do.call.intrnl(funNme, funArgs)
-        if (!ok[[1]]) {
-          if (node$type == "warning") warning(paste0("step ", node$name, " raised warning:", ok[[2]]))
-          if (node$type == "error") stop(paste0("step ", node$name, " raised error:", ok[[2]]))
-        }
-        print(paste0("Processed ", node$name))
         return (children)
       }
-      node$fun <- Wrn
-    } else if (node$type %in% c("transformation", "junction", "function")) {
-
-      parameters <- GetParametersUsedBelow(node)
-      funArgs <- ParseParameters(node, funArgs, parameters)
-
-      CallStep <- function() {
-
-        if ("@pipe" %in% funArgs) {
-          children <- lapply(node$children, function(child) {
-                                              childParameters <- GetParametersUsedBelow(child)
-                                              if (length(childParameters) == 0) args <- list()
-                                              else args <- get(names(formals(CallStep)))[childParameters]
-                                              do.call(child$fun, args)
-                                            })
-          if (node$count == 1) children <- children[[1]]
-          #if (node$name == "DateRange") browser()
-          funArgs[[which(funArgs == "@pipe")]] <- children
-        }
-        if ("@pipefun" %in% funArgs) {
-          children <- lapply(node$children, function(child) child$fun)
-          if (node$count == 1) children <- children[[1]]
-          funArgs[[which(funArgs == "@pipefun")]] <- children
-        }
-        res <- do.call.intrnl(funNme, funArgs)
-        print(paste0("Processed ", node$name))
-        return (res)
-      }
-      if (length(parameters) > 0) formals(CallStep) <- do.call(alist, parameters)
-      if (node$type == "function") {
-        node$fun <- do.call(CallStep, parameters)
-      } else node$fun <- CallStep
-    } else if (node$type == "source") {
-
-
-      parameters <- GetParametersUsedBelow(node)
-      funArgs <- ParseParameters(node, funArgs, parameters)
-
-      CallStep <- function() {
-
-        res <- do.call.intrnl(funNme, funArgs)
-        print(paste0("Processed ", node$name))
-        return (res)
-      }
-
-      if (length(parameters) > 0) formals(CallStep) <- do.call(alist, parameters)
-
-      #if (node$name == "Quandl") browser()
-      node$fun <- CallStep
-
-    } else if (node$type == "tap") {
-        node$fun <- function() do.call(node$children[[1]]$fun, node$parameters)
-        formals(node$fun) <- do.call(alist, node$parameters)
-    } else {
-       stop(paste0("Unknown node type ", node$type))
-
+      print(paste0("Processed ", node$name))
+      return (res)
     }
+    if (length(node$parameters) > 0) formals(CallStep) <- do.call(alist, node$parameters)
+    if (node$type == "function") {
+      fun <- CallStep()
+    } else fun <- CallStep
 
+    return (fun)
 
 }
 
 
 
-ParseParameters <- function(node, funArgs, parameters) {
 
-  if (!is.null(parameters)) {
-    for (argNme in names(funArgs)) {
-      v <- funArgs[[argNme]]
+ParseTapFun <- function(node) {
+  child <- node$children[[1]]
+  CallStep <- function() {
+    myArgs <- GetFunctionArguments(CallStep)
+    do.call(child$fun, myArgs[names(child$parameters)])
+  }
+  formals(CallStep) <- do.call(alist, node$parameters)
+  return (CallStep)
+}
+
+
+#' Can only be called from inside a function!
+GetFunctionArguments <- function(fun) {
+  arguments <- lapply(names(formals(fun)), function(x) get(x, envir = sys.parent(3)))
+  names(arguments) <- names(formals(fun))
+  return(arguments)
+}
+
+
+
+ParseParameters <- function(node, funArgs, parameterValues) {
+
+  if (!is.null(parameterValues)) {
+    for (i in 1:length(funArgs)) {
+      v <- funArgs[[i]]
       if (!identical(v, "@pipe") && identical(substr(v, 1, 1), "@")) {
         v <- substr(v, 2, nchar(v))
-        if (!is.null(parameters[[v]])) {
-          funArgs[[argNme]] <- parameters[[v]]
+        if (!is.null(parameterValues[[v]])) {
+          funArgs[[i]] <- parameterValues[[v]]
         }
       }
 
@@ -277,7 +243,7 @@ ParseParameters <- function(node, funArgs, parameters) {
 }
 
 
-GetParametersUsedBelow <- function(node) {
+GetUpstreamParameters <- function(node) {
   parameters <- GetAttribute(node, "parameters", inheritFromAncestors = TRUE, nullAsNa = FALSE)
   if (length(parameters) == 0) return (list())
   node$Get(function(x) parameters[paste0('@', names(parameters)) %in% x$arguments] %>% names) %>% unique %>% unlist %>% extract(parameters, .) -> res
