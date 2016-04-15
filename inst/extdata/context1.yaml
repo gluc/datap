@@ -112,6 +112,34 @@ AAPL:
     yahooSymbol: "AAPL"
     quandlCode: "YAHOO/AAPL"
   pipe: *QYPipe
+MA:
+  type: tap
+  longname: "Moving Average"
+  parameters:
+    series: NULL
+    periods: 10
+  Transform:
+    type: transformation
+    function: TTR::SMA
+    arguments:
+      x: '@series'
+      n: '@periods'
+MATap:
+  type: tap
+  longname: "Moving Average"
+  parameters:
+    tapName: NULL
+    periods: 10
+  function: TTR::SMA
+  arguments:
+    x: '@pipe'
+    n: '@periods'
+  Tap:
+    type: source
+    function: Tap
+    arguments:
+      context: '@context'
+      tapName: '@tapName'
 
 
 
