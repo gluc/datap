@@ -132,11 +132,12 @@ Technical Indicators:
     type: tap
     longname: "Moving Average"
     description: |
-      This demonstrates how you can create
+      This demonstrates how to create
       taps based on other taps
     parameters:
-      tapPath: NULL
+      tapPath:
       periods: 10
+      ...:
     pipe:
       type: pipe
       SMA:
@@ -151,15 +152,18 @@ Technical Indicators:
         arguments:
           context: '@context'
           tapPath: '@tapPath'
+          ...: '@...'
 
   MA:
     type: tap
     longname: "Moving Average"
     description: |
-      This demonstrates how you can create
-      taps without a data source.
+      This demonstrates how to create
+      taps without a data source. Use it
+      as a function, with any xts as an
+      input!
     parameters:
-      series: NULL
+      series:
       periods: 10
     Transform:
       type: joint

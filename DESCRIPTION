@@ -1,16 +1,12 @@
-Package: CodaPipeR
+Package: datapR
 Type: Package
-Title: Configurable Data Pipe R reference implementation
+Title: Configurable Data Pipes R reference implementation
 Version: 0.1.0
 Author: Christoph Glur
 Maintainer: Christoph Glur <christoph.glur@ipub.com>
-Description: Manage financial timeseries from various sources such as
-  Bloomberg, Quandl, and your proprietary price store. Define meta
-  data for timeseries, specifying the source and possible transformations.
-  This allows you, for example, to define a custom index as a 50/50
-  combination of two stocks adjusted close prices, and to download, calculate,
-  and load it into R memory with a single command.
-  This is useful for custom indices, price proxies, futures stitches, and more.
+Description: Define and configure datap contexts in R. Use them for
+  instance to download, pre-process, merge, and QA financial timeseries
+  from various sources.
 VignetteBuilder: knitr
 License: GPL (>= 2)
 LazyData: TRUE
