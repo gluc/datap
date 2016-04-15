@@ -21,13 +21,12 @@ Load <- function(con) {
 
   tree$Do(function(node) node$parameters <- GetUpstreamParameters(node))
   tree$Do(function(node) node$arguments <- ParseVariables(node))
-
+  tree$Do(fun = function(node) node$dynamicVariables <- ParseDynamicVariables(node))
   tree$Do(fun = function(node) node$fun <- ParseFun(node),
           traversal = "post-order",
           filterFun = function(x) x$level > 2)
 
-
-  tree$Do(fun = function(node) node$fun <- ParseTapFun(node),
+  tree$Do(fun = function(node) node$tap <- ParseTapFun(node),
           filterFun = function(x) identical(x$type, "tap"))
 
   tree$TapNames <- function() names(tree$children)
@@ -130,25 +129,30 @@ GetData <- function(context, tapName, ...) {
 VARIABLE_RESERVED_NAMES_CONST <- c( 'pipe',
                                     'pipefun')
 
-
+#' Finds static variables in arguments and replaces them
+#' with their values.
 ParseVariables <- function(node) {
-  funNme <- node$`function`
   funArgs <- node$arguments
-  funArgsNms <- names(funArgs)
   #parse variables (except @pipe, @pipefun, etc)
-  for (argNme in names(funArgs)) {
-    v <- funArgs[[argNme]]
+  for (i in 1:length(funArgs)) {
+    v <- funArgs[[i]]
     if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
-      print(v)
       v <- substr(v, 2, nchar(v))
       tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))
       if (length(tr) > 0) {
         vval <- Get(tr[1], function(x) x$variables[[v]])[[1]]
-        funArgs[[argNme]] <- vval
+        funArgs[[i]] <- vval
       }
     }
 
   }
+  return (funArgs)
+}
+
+#' Parse variables that are dynamic
+ParseDynamicVariables <- function(node) {
+  funArgs <- node$arguments %>% unlist
+  funArgs <- funArgs[substr(funArgs, 1, 1) == "@"]
   return (funArgs)
 }
 
@@ -165,25 +169,25 @@ ParseFun <- function(node) {
     print (node$name)
 
     CallStep <- function() {
-
+      #if (node$name == "Cache") browser()
       #parse parameters
       myArgs <- GetFunctionArguments(CallStep)
 
       funArgs <- ParseParameters(node, funArgs, myArgs)
 
-      if ("@pipe" %in% funArgs) {
+      if ("@pipe" %in% node$dynamicVariables) {
         children <- lapply(node$children, function(child) do.call(child$fun, myArgs[names(child$parameters)]))
         if (node$count == 1) children <- children[[1]]
         #if (node$name == "DateRange") browser()
         funArgs[[which(funArgs == "@pipe")]] <- children
       }
-      if ("@pipefun" %in% funArgs) {
+      if ("@pipefun" %in% node$dynamicVariables) {
         children <- lapply(node$children, function(child) child$fun)
         if (node$count == 1) children <- children[[1]]
         funArgs[[which(funArgs == "@pipefun")]] <- children
       }
       res <- do.call.intrnl(funNme, funArgs)
-      if (node$type %in% c("warning", "error")) {
+      if (node$type == "warning" || node$type == "error") {
         if (!res[[1]]) {
           if (node$type == "warning") warning(paste0("step ", node$name, " raised warning:", res[[2]]))
           if (node$type == "error") stop(paste0("step ", node$name, " raised error:", res[[2]]))
@@ -224,13 +228,13 @@ GetFunctionArguments <- function(fun) {
 }
 
 
-
+#' Replaces variables references that point to a tap parameter
 ParseParameters <- function(node, funArgs, parameterValues) {
 
   if (!is.null(parameterValues)) {
     for (i in 1:length(funArgs)) {
       v <- funArgs[[i]]
-      if (!identical(v, "@pipe") && identical(substr(v, 1, 1), "@")) {
+      if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
         v <- substr(v, 2, nchar(v))
         if (!is.null(parameterValues[[v]])) {
           funArgs[[i]] <- parameterValues[[v]]
