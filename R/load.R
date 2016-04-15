@@ -5,8 +5,13 @@ VARIABLE_RESERVED_NAMES_CONST <- c( 'pipe',
                                     'pipefun',
                                     'context')
 
-NODE_TYPES_NON_TAPS_CONST <- c('pipe', 'junction', 'transformation', 'warning', 'error', 'source', 'function')
-NODE_TYPES_CONST <- c('tap', NODE_TYPES_NON_TAPS_CONST)
+JOINT_TYPES_AGGREGATORS <- c('pipe', 'junction')
+JOINT_TYPES_JOINTS <- c( 'joint', 'factory')
+JOINT_TYPES_QA <- c('warning', 'error')
+
+
+JOINT_TYPES_NON_TAP <- c(JOINT_TYPES_AGGREGATORS, JOINT_TYPES_JOINTS, JOINT_TYPES_QA)
+JOINT_TYPES <- c('tap', JOINT_TYPES_NON_TAP)
 
 
 
@@ -36,7 +41,7 @@ Load <- function(con) {
   tree$Do(fun = function(node) node$dynamicVariables <- GetDynamicVariables(node))
   tree$Do(fun = function(node) node$fun <- ParseFun(node),
           traversal = "post-order",
-          filterFun = function(node) !is.null(node$type) && node$type %in% NODE_TYPES_NON_TAPS_CONST)
+          filterFun = function(node) !is.null(node$type) && node$type %in% JOINT_TYPES_NON_TAP)
 
   tree$Do(fun = function(node) node$tap <- ParseTapFun(node),
           filterFun = function(node) identical(node$type, "tap"))
@@ -173,7 +178,7 @@ GetDynamicVariables <- function(node) {
 #' @importFrom data.tree Traverse Get GetAttribute
 ParseFun <- function(node) {
 
-  # warning, error and transformation
+
     funNme <- node$`function`
     funArgs <- node$arguments
     funArgsNms <- names(funArgs)
@@ -181,7 +186,7 @@ ParseFun <- function(node) {
     print (node$name)
     #if (node$name == "Cache") browser()
     CallStep <- function() {
-      #if (node$name == "Cache") browser()
+      #if (node$name == "SMA") browser()
       #parse parameters
       myArgs <- GetFunctionArguments(CallStep)
 
@@ -210,7 +215,7 @@ ParseFun <- function(node) {
       return (res)
     }
     if (length(node$parameters) > 0) formals(CallStep) <- do.call(alist, node$parameters)
-    if (node$type == "function") {
+    if (node$type == "factory") {
       fun <- CallStep()
     } else fun <- CallStep
 

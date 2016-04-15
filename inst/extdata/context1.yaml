@@ -1,7 +1,7 @@
 NA handling: &NaHandling
   type: pipe
   Fill NAs:
-    type: transformation
+    type: joint
     function: zoo::na.locf
     arguments:
       object: '@pipe'
@@ -12,23 +12,23 @@ NA handling: &NaHandling
       timeseries: '@pipe'
       variable: Close
       maxRatio: 0.25
-Transformation: &QYPipe
+joint: &QYPipe
   type: pipe
   Cache:
-    type: function
+    type: factory
     function: Cache
     arguments:
       f: '@pipefun'
       timeout: 3600
   Close:
-    type: transformation
+    type: joint
     function: magrittr::use_series
     arguments:
       a: '@pipe'
       b: 'Close'
   NAs: *NaHandling
   Regularize:
-      type: transformation
+      type: joint
       function: Regularize
       arguments:
         xts: '@pipe'
@@ -46,7 +46,7 @@ Transformation: &QYPipe
           timeseries: '@pipe'
           minLength: 10
       DownloadQuandl:
-        type: source
+        type: joint
         function: Quandl::Quandl
         arguments:
           code: "@quandlCode"
@@ -60,13 +60,13 @@ Transformation: &QYPipe
           timeseries: '@pipe'
           minLength: 10
       SetNames:
-        type: transformation
+        type: joint
         function: SetNames
         arguments:
           x: '@pipe'
           names: [Open, High, Low, Close, Volume, 'Adjusted Close']
         DownloadYahoo:
-          type: source
+          type: joint
           function: quantmod::getSymbols
           arguments:
             Symbols: "@yahooSymbol"
@@ -92,7 +92,7 @@ SPX:
   Pipe:
     type: pipe
     DateRange:
-      type: transformation
+      type: joint
       function: magrittr::extract
       arguments:
         - '@pipe'
@@ -112,35 +112,45 @@ AAPL:
     yahooSymbol: "AAPL"
     quandlCode: "YAHOO/AAPL"
   pipe: *QYPipe
-MA:
-  type: tap
-  longname: "Moving Average"
-  parameters:
-    series: NULL
-    periods: 10
-  Transform:
-    type: transformation
-    function: TTR::SMA
-    arguments:
-      x: '@series'
-      n: '@periods'
-MATap:
-  type: tap
-  longname: "Moving Average"
-  parameters:
-    tapName: NULL
-    periods: 10
-  function: TTR::SMA
-  arguments:
-    x: '@pipe'
-    n: '@periods'
-  Tap:
-    type: source
-    function: Tap
-    arguments:
-      context: '@context'
-      tapName: '@tapName'
+Technical Indicators:
+  MATap:
+    type: tap
+    longname: "Moving Average"
+    description: |
+      This demonstrates how you can create
+      taps based on other taps
+    parameters:
+      tapName: NULL
+      periods: 10
+    pipe:
+      type: pipe
+      SMA:
+        type: joint
+        function: TTR::SMA
+        arguments:
+          x: '@pipe'
+          'n': '@periods'
+      Tap:
+        type: joint
+        function: Tap
+        arguments:
+          context: '@context'
+          tapName: '@tapName'
 
-
+  MA:
+    type: tap
+    longname: "Moving Average"
+    description: |
+      This demonstrates how you can create
+      taps without a data source.
+    parameters:
+      series: NULL
+      periods: 10
+    Transform:
+      type: joint
+      function: TTR::SMA
+      arguments:
+        x: '@series'
+        'n': '@periods'
 
 
