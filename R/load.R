@@ -86,13 +86,11 @@ CreateTree <- function(lol) {
   #name conflicts
 
   SimplifyTree(rawTree)
-
-  ctx <- Node$new("Context")
-  taps <- Traverse(rawTree, filterFun = function(node) identical(node$type, "tap"))
-
-  for (tap in taps) ctx$AddChildNode(tap)
-
-  return (ctx)
+  rawTree$Prune(pruneFun = function(node) {
+    any(node$Get("type") == "tap", na.rm = TRUE) || any(node$Get("type", traversal = "ancestor") == "tap", na.rm = TRUE)
+  })
+  rawTree$name <- "context"
+  return (rawTree)
 
 }
 
@@ -133,16 +131,6 @@ RemoveNodes <- function(rawTree, name, lol) {
 
 
 
-#' Get data from a tap
-#'
-#' @param tapName the name of the tap
-#' @param context the context object
-#' @param ... any parameters to be passed on to the tap
-#'
-#' @export
-Tap <- function(context, tapName, ...) {
-  context$Climb(tapName)$tap(...)
-}
 
 
 

@@ -1,117 +1,132 @@
-NA handling: &NaHandling
-  type: pipe
-  Fill NAs:
-    type: joint
-    function: zoo::na.locf
-    arguments:
-      object: '@pipe'
-  NA Ratio:
-    type: warning
-    function: NaRatio
-    arguments:
-      timeseries: '@pipe'
-      variable: Close
-      maxRatio: 0.25
-joint: &QYPipe
-  type: pipe
-  Cache:
-    type: factory
-    function: Cache
-    arguments:
-      f: '@pipefun'
-      timeout: 3600
-  Close:
-    type: joint
-    function: magrittr::use_series
-    arguments:
-      a: '@pipe'
-      b: 'Close'
-  NAs: *NaHandling
-  Regularize:
-      type: joint
-      function: Regularize
-      arguments:
-        xts: '@pipe'
-  Combine:
-    type: junction
-    function: Combine
-    arguments:
-      listofxts: '@pipe'
-    Quandl:
-      type: pipe
-      MinLength:
-        type: error
-        function: MinLength
-        arguments:
-          timeseries: '@pipe'
-          minLength: 10
-      DownloadQuandl:
-        type: joint
-        function: Quandl::Quandl
-        arguments:
-          code: "@quandlCode"
-          type: xts
-    Yahoo:
-      type: pipe
-      MinLength:
-        type: warning
-        function: MinLength
-        arguments:
-          timeseries: '@pipe'
-          minLength: 10
-      SetNames:
-        type: joint
-        function: SetNames
-        arguments:
-          x: '@pipe'
-          names: [Open, High, Low, Close, Volume, 'Adjusted Close']
-        DownloadYahoo:
-          type: joint
-          function: quantmod::getSymbols
-          arguments:
-            Symbols: "@yahooSymbol"
-            auto.assign: FALSE
-## taps
-SPX:
-  type: tap
-  longname: "S&P 500 daily close"
-  description: |
-    Quandl, fill missing values with Yahoo.
-    Backfill weekends and holidays.
-    Cache for an hour.
-    Warn if newest value older than a day.
-  parameters:
-    #parameterName: defaultArgument
-    dteRange: 1990-01-01/2010-01-01
-  variables:
-    #variableName: value
-    series: Close
-    maxNaRatio: 0.25
-    yahooSymbol: "^GSPC"
-    quandlCode: "YAHOO/INDEX_GSPC"
-  Pipe:
+modules:
+  NA handling: &NaHandling
     type: pipe
-    DateRange:
+    Fill NAs:
       type: joint
-      function: magrittr::extract
+      function: zoo::na.locf
       arguments:
-        - '@pipe'
-        - '@dteRange'
-    QYPipe: *QYPipe
-AAPL:
-  type: tap
-  longname: "apple"
-  description: |
-    Quandl, fill missing values with Yahoo.
-    Backfill weekends and holidays.
-    Cache for an hour.
-    Warn if newest value older than a day.
-  variables:
-    series: Close
-    maxNaRatio: 0.25
-    yahooSymbol: "AAPL"
-    quandlCode: "YAHOO/AAPL"
-  pipe: *QYPipe
+        object: '@pipe'
+    NA Ratio:
+      type: warning
+      function: NaRatio
+      arguments:
+        timeseries: '@pipe'
+        variable: Close
+        maxRatio: 0.25
+  joint: &QYPipe
+    type: pipe
+    Cache:
+      type: factory
+      function: Cache
+      arguments:
+        f: '@pipefun'
+        timeout: 3600
+    Close:
+      type: joint
+      function: magrittr::use_series
+      arguments:
+        a: '@pipe'
+        b: 'Close'
+    NAs: *NaHandling
+    Regularize:
+        type: joint
+        function: Regularize
+        arguments:
+          xts: '@pipe'
+    Combine:
+      type: junction
+      function: Combine
+      arguments:
+        listofxts: '@pipe'
+      Quandl:
+        type: pipe
+        MinLength:
+          type: error
+          function: MinLength
+          arguments:
+            timeseries: '@pipe'
+            minLength: 10
+        DownloadQuandl:
+          type: joint
+          function: Quandl::Quandl
+          arguments:
+            code: "@quandlCode"
+            type: xts
+      Yahoo:
+        type: pipe
+        MinLength:
+          type: warning
+          function: MinLength
+          arguments:
+            timeseries: '@pipe'
+            minLength: 10
+        SetNames:
+          type: joint
+          function: SetNames
+          arguments:
+            x: '@pipe'
+            names: [Open, High, Low, Close, Volume, 'Adjusted Close']
+          DownloadYahoo:
+            type: joint
+            function: quantmod::getSymbols
+            arguments:
+              Symbols: "@yahooSymbol"
+              auto.assign: FALSE
+## taps
+Closing Prices:
+  Indices:
+    SPX:
+      type: tap
+      longname: "S&P 500 daily close"
+      description: |
+        Quandl, fill missing values with Yahoo.
+        Backfill weekends and holidays.
+        Cache for an hour.
+        Warn if newest value older than a day.
+      parameters:
+        #parameterName: defaultArgument
+        dteRange: 1990-01-01/2010-01-01
+      variables:
+        #variableName: value
+        series: Close
+        maxNaRatio: 0.25
+        yahooSymbol: "^GSPC"
+        quandlCode: "YAHOO/INDEX_GSPC"
+      Pipe:
+        type: pipe
+        DateRange:
+          type: joint
+          function: magrittr::extract
+          arguments:
+            - '@pipe'
+            - '@dteRange'
+        QYPipe: *QYPipe
+  Single Stocks:
+    AAPL:
+      type: tap
+      longname: "apple"
+      description: |
+        Quandl, fill missing values with Yahoo.
+        Backfill weekends and holidays.
+        Cache for an hour.
+        Warn if newest value older than a day.
+      variables:
+        series: Close
+        maxNaRatio: 0.25
+        yahooSymbol: "AAPL"
+        quandlCode: "YAHOO/AAPL"
+      pipe: *QYPipe
+    MSFT:
+      type: tap
+      longname: "Microsoft"
+      variables:
+        series: Close
+        maxNaRatio: 0.25
+        yahooSymbol: "MSFT"
+        quandlCode: "YAHOO/MSFT"
+      pipe: *QYPipe
+
+
 Technical Indicators:
   MATap:
     type: tap
@@ -120,7 +135,7 @@ Technical Indicators:
       This demonstrates how you can create
       taps based on other taps
     parameters:
-      tapName: NULL
+      tapPath: NULL
       periods: 10
     pipe:
       type: pipe
@@ -135,7 +150,7 @@ Technical Indicators:
         function: Tap
         arguments:
           context: '@context'
-          tapName: '@tapName'
+          tapPath: '@tapPath'
 
   MA:
     type: tap
