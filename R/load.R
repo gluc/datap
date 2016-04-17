@@ -20,7 +20,7 @@ JOINT_TYPES <- c('tap', JOINT_TYPES_NON_TAP)
 #' @param con a connection containing the meta data
 #'
 #' @examples
-#' filePath <- system.file("extdata", "context1.yaml", package="CodaPipeR")
+#' filePath <- system.file("extdata", "context1.yaml", package="datapR")
 #' context <- Load(filePath)
 #'
 #' @importFrom yaml yaml.load
@@ -187,11 +187,7 @@ ParseFun <- function(node) {
 
       if ("@pipe" %in% node$dynamicVariables) {
         children <- lapply(node$children, function(child) {
-          if ("..." %in% names(formals(child$fun))) {
-            childParameters <- c(ellipsis, myArgs[names(child$parameters)[names(child$parameters) != "..."]])
-          } else {
-            childParameters <- myArgs[names(child$parameters)]
-          }
+          childParameters <- GetChildParameters(node, child, myArgs, ellipsis)
           do.call(child$fun, childParameters)
         })
         if (node$count == 1) children <- children[[1]]
@@ -223,6 +219,35 @@ ParseFun <- function(node) {
 
 }
 
+
+#' Create the function on the tap
+ParseTapFun <- function(node) {
+  child <- node$children[[1]]
+  CallStep <- function() {
+    argumentNames <- ls()
+    myArgs <- lapply(argumentNames, function(x) get(x))
+    names(myArgs) <- argumentNames
+    if ("..." %in% names(formals())) ellipsis <- list(...)
+    else ellipsis <- list()
+    childParameters <- GetChildParameters(node, child, myArgs, ellipsis)
+    do.call(child$fun, childParameters)
+  }
+  CallStep <- SetFormals(CallStep, node)
+  return (CallStep)
+}
+
+
+
+GetChildParameters <- function(node, child, myArgs, ellipsis) {
+  if ("..." %in% names(formals(child$fun))) {
+    childParameters <- c(ellipsis, myArgs[names(child$parameters)[names(child$parameters) != "..."]])
+  } else {
+    childParameters <- myArgs[names(child$parameters)]
+  }
+  return (childParameters)
+}
+
+
 SetFormals <- function(CallStep, node) {
   if (length(node$parameters) > 0) {
     parametersList <- node$parameters
@@ -243,18 +268,6 @@ SetFormals <- function(CallStep, node) {
   return (CallStep)
 }
 
-#' Create the function on the tap
-ParseTapFun <- function(node) {
-  child <- node$children[[1]]
-  CallStep <- function() {
-    argumentNames <- ls()
-    myArgs <- lapply(argumentNames, function(x) get(x))
-    names(myArgs) <- argumentNames
-    do.call(child$fun, myArgs[names(child$parameters)])
-  }
-  CallStep <- SetFormals(CallStep, node)
-  return (CallStep)
-}
 
 
 #' Can only be called from inside a function!

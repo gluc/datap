@@ -10,6 +10,19 @@ Ones <- function(startDate = "1990-01-01", endDate = Sys.Date()) {
 }
 
 
+#' Get data from a tap
+#'
+#' @param tapPath the name of the tap
+#' @param context the context object
+#' @param ... any parameters to be passed on to the tap
+#'
+#' @importFrom data.tree Climb
+#' @export
+Tap <- function(context, tapPath, ...) {
+  tap <- do.call(Climb, strsplit(tapPath, "/", fixed = TRUE)[[1]] %>% as.list %>% c(context, .))
+  tap$tap(...)
+}
+
 
 #' Create a daily timeseries with a constant yearly return.
 #'

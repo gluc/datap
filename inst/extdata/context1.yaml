@@ -125,8 +125,18 @@ Closing Prices:
         yahooSymbol: "MSFT"
         quandlCode: "YAHOO/MSFT"
       pipe: *QYPipe
-
-
+  Fabricated:
+    Ones:
+      type: tap
+      parameters:
+        startDate: 1990-01-01
+         #endDate: '@today'
+      GetOnes:
+        type: joint
+        function: Ones
+        arguments:
+          startDate: '@startDate'
+          #endDate: '@endDate'
 Technical Indicators:
   MATap:
     type: tap

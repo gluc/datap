@@ -13,7 +13,7 @@ Load(con)
 Loads a meta definition.
 }
 \examples{
-filePath <- system.file("extdata", "context1.yaml", package="CodaPipeR")
+filePath <- system.file("extdata", "context1.yaml", package="datapR")
 context <- Load(filePath)
 
 }
