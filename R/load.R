@@ -176,12 +176,24 @@ ParseFun <- function(node) {
     CallStep <- function() {
       #if (node$name == "SMA") browser()
       #parse parameters
-      myArgs <- GetFunctionArguments(CallStep)
+      argumentNames <- ls()
+      myArgs <- lapply(argumentNames, function(x) get(x))
+      names(myArgs) <- argumentNames
 
-      funArgs <- ParseParameters(node, funArgs, myArgs)
+      if ("..." %in% names(formals())) ellipsis <- list(...)
+      else ellipsis <- list()
+
+      funArgs <- ParseParameters(node, funArgs, myArgs, ellipsis)
 
       if ("@pipe" %in% node$dynamicVariables) {
-        children <- lapply(node$children, function(child) do.call(child$fun, myArgs[names(child$parameters)]))
+        children <- lapply(node$children, function(child) {
+          if ("..." %in% names(formals(child$fun))) {
+            childParameters <- c(ellipsis, myArgs[names(child$parameters)[names(child$parameters) != "..."]])
+          } else {
+            childParameters <- myArgs[names(child$parameters)]
+          }
+          do.call(child$fun, childParameters)
+        })
         if (node$count == 1) children <- children[[1]]
 
         funArgs[[which(funArgs == "@pipe")]] <- children
@@ -202,7 +214,7 @@ ParseFun <- function(node) {
       print(paste0("Processed ", node$name))
       return (res)
     }
-    if (length(node$parameters) > 0) formals(CallStep) <- do.call(alist, node$parameters)
+    CallStep <- SetFormals(CallStep, node)
     if (node$type == "factory") {
       fun <- CallStep()
     } else fun <- CallStep
@@ -211,35 +223,59 @@ ParseFun <- function(node) {
 
 }
 
+SetFormals <- function(CallStep, node) {
+  if (length(node$parameters) > 0) {
+    parametersList <- node$parameters
+    GetParam <- function(name, defaultValue) {
+      if (is.character(defaultValue)) defaultValue <- paste0("'", defaultValue, "'")
+      if (is.null(defaultValue)) return (paste0(name, " ="))
+      return (paste(name, defaultValue, sep = " = "))
+    }
 
+    1:length(parametersList) %>%
+      lapply(function(i) GetParam(names(parametersList)[[i]], parametersList[[i]])) %>%
+      paste(collapse = ", ") %>%
+      paste0("alist(", ., ")") %>%
+      parse(text = .) %>%
+      eval -> formals(CallStep)
+
+  }
+  return (CallStep)
+}
 
 #' Create the function on the tap
 ParseTapFun <- function(node) {
   child <- node$children[[1]]
   CallStep <- function() {
-    myArgs <- GetFunctionArguments(CallStep)
+    argumentNames <- ls()
+    myArgs <- lapply(argumentNames, function(x) get(x))
+    names(myArgs) <- argumentNames
     do.call(child$fun, myArgs[names(child$parameters)])
   }
-  formals(CallStep) <- do.call(alist, node$parameters)
+  CallStep <- SetFormals(CallStep, node)
   return (CallStep)
 }
 
 
 #' Can only be called from inside a function!
 GetFunctionArguments <- function(fun) {
-  arguments <- lapply(names(formals(fun)), function(x) get(x, envir = sys.parent(3)))
-  names(arguments) <- names(formals(fun))
+  argumentNames <- ls()
+  arguments <- lapply(argumentNames, function(x) get(x))
+  names(arguments) <- argumentNames
   return(arguments)
 }
 
 
 #' Replaces variables references that point to a tap parameter
-ParseParameters <- function(node, funArgs, parameterValues) {
+ParseParameters <- function(node, funArgs, parameterValues, ellipsis) {
 
   if (!is.null(parameterValues)) {
     for (i in 1:length(funArgs)) {
       v <- funArgs[[i]]
-      if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
+      if (identical(v, "@...")) {
+        funArgs <- c(funArgs, ellipsis)
+        funArgs <- funArgs[-i]
+      } else if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
         v <- substr(v, 2, nchar(v))
         if (!is.null(parameterValues[[v]])) {
           funArgs[[i]] <- parameterValues[[v]]

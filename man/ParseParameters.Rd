@@ -4,7 +4,7 @@
 \alias{ParseParameters}
 \title{Replaces variables references that point to a tap parameter}
 \usage{
-ParseParameters(node, funArgs, parameterValues)
+ParseParameters(node, funArgs, parameterValues, ellipsis)
 }
 \description{
 Replaces variables references that point to a tap parameter
