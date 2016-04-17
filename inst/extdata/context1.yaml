@@ -11,8 +11,8 @@ modules:
       function: NaRatio
       arguments:
         timeseries: '@pipe'
-        variable: Close
-        maxRatio: 0.25
+        variable: '@series'
+        maxRatio: '@maxNaRatio'
   joint: &QYPipe
     type: pipe
     Cache:
@@ -21,12 +21,12 @@ modules:
       arguments:
         f: '@pipefun'
         timeout: 3600
-    Close:
+    GetSeries:
       type: joint
       function: magrittr::use_series
       arguments:
         a: '@pipe'
-        b: 'Close'
+        b: '@series'
     NAs: *NaHandling
     Regularize:
         type: joint
@@ -74,6 +74,9 @@ modules:
               auto.assign: FALSE
 ## taps
 Closing Prices:
+  variables:
+      series: Close
+      maxNaRatioDefault: 0.25
   Indices:
     SPX:
       type: tap
@@ -88,8 +91,8 @@ Closing Prices:
         dteRange: 1990-01-01/2010-01-01
       variables:
         #variableName: value
-        series: Close
-        maxNaRatio: 0.25
+        series: '@series'
+        maxNaRatio: '@maxNaRatioDefault'
         yahooSymbol: "^GSPC"
         quandlCode: "YAHOO/INDEX_GSPC"
       Pipe:
@@ -111,8 +114,8 @@ Closing Prices:
         Cache for an hour.
         Warn if newest value older than a day.
       variables:
-        series: Close
-        maxNaRatio: 0.25
+        series: '@series'
+        maxNaRatio: '@maxNaRatioDefault'
         yahooSymbol: "AAPL"
         quandlCode: "YAHOO/AAPL"
       pipe: *QYPipe
@@ -120,23 +123,26 @@ Closing Prices:
       type: tap
       longname: "Microsoft"
       variables:
-        series: Close
-        maxNaRatio: 0.25
+        series: '@series'
+        maxNaRatio: 0.0
         yahooSymbol: "MSFT"
         quandlCode: "YAHOO/MSFT"
       pipe: *QYPipe
   Fabricated:
+    variables:
+      startDateDefault: 1990-01-01
     Ones:
       type: tap
       parameters:
-        startDate: 1990-01-01
-         #endDate: '@today'
+        startDate: '@startDateDefault'
+        endDate: '@Today()'
       GetOnes:
         type: joint
         function: Ones
         arguments:
           startDate: '@startDate'
-          #endDate: '@endDate'
+          endDate: '@endDate'
+          colname: '@series'
 Technical Indicators:
   MATap:
     type: tap

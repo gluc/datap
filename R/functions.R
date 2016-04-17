@@ -4,9 +4,11 @@
 #'
 #' @inheritParams ConstantReturn
 #' @export
-Ones <- function(startDate = "1990-01-01", endDate = Sys.Date()) {
+Ones <- function(startDate = "1990-01-01", endDate = Sys.Date(), colname = "Close") {
   orderby <- seq(as.Date(startDate), as.Date(endDate), 1)
-  xts(rep(1, length(orderby)), orderby)
+  res <- xts(rep(1, length(orderby)), orderby)
+  colnames(res) <- colname
+  return (res)
 }
 
 

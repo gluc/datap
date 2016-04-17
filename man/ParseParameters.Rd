@@ -2,11 +2,24 @@
 % Please edit documentation in R/load.R
 \name{ParseParameters}
 \alias{ParseParameters}
-\title{Replaces variables references that point to a tap parameter}
+\title{Replaces variables in funArgs that point to a tap parameter
+with the respective argument}
 \usage{
-ParseParameters(node, funArgs, parameterValues, ellipsis)
+ParseParameters(node, funArgs, myArgs, ellipsis)
+}
+\arguments{
+\item{node}{the node}
+
+\item{funArgs}{the arguments of the processing step, i.e. the
+function to be called inside the node$fun}
+
+\item{myArgs}{the arguments of the node$fun (coming from the parameters
+declaration)}
+
+\item{ellipsis}{the ellipsis arguments}
 }
 \description{
-Replaces variables references that point to a tap parameter
+Replaces variables in funArgs that point to a tap parameter
+with the respective argument
 }
 

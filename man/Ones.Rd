@@ -4,7 +4,7 @@
 \alias{Ones}
 \title{Create a timeseries of 1}
 \usage{
-Ones(startDate = "1990-01-01", endDate = Sys.Date())
+Ones(startDate = "1990-01-01", endDate = Sys.Date(), colname = "Close")
 }
 \arguments{
 \item{startDate}{the first date of the xts to be returned}

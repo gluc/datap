@@ -2,11 +2,15 @@
 % Please edit documentation in R/load.R
 \name{GetDynamicVariables}
 \alias{GetDynamicVariables}
-\title{Get variables that are dynamic}
+\title{Get variables that are dynamic, such
+as @pipe, @pipefun or @context. Assumes non-dynamic
+variables have already been parsed.}
 \usage{
 GetDynamicVariables(node)
 }
 \description{
-Get variables that are dynamic
+Get variables that are dynamic, such
+as @pipe, @pipefun or @context. Assumes non-dynamic
+variables have already been parsed.
 }
 

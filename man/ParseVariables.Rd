@@ -5,7 +5,7 @@
 \title{Finds static variables in arguments and replaces them
 with their values.}
 \usage{
-ParseVariables(node)
+ParseVariables(node, funArgs)
 }
 \description{
 Finds static variables in arguments and replaces them

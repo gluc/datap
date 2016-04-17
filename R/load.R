@@ -35,9 +35,11 @@ Load <- function(con) {
   class(tree) <- c("context", class(tree))
   tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
 
-
+  tree$Do(function(node) node$variables <- ParseVariables(node$parent, node$variables))
+  tree$Do(function(node) node$parameters <- ParseVariables(node, node$parameters), filterFun = function(node) identical(node$type, "tap"))
   tree$Do(function(node) node$parameters <- GetUpstreamParameters(node))
-  tree$Do(function(node) node$arguments <- ParseVariables(node))
+
+  tree$Do(function(node) node$arguments <- ParseVariables(node, node$arguments))
   tree$Do(fun = function(node) node$dynamicVariables <- GetDynamicVariables(node))
   tree$Do(fun = function(node) node$fun <- ParseFun(node),
           traversal = "post-order",
@@ -136,17 +138,22 @@ RemoveNodes <- function(rawTree, name, lol) {
 
 #' Finds static variables in arguments and replaces them
 #' with their values.
-ParseVariables <- function(node) {
-  funArgs <- node$arguments
+ParseVariables <- function(node, funArgs) {
+  if (length(funArgs) == 0) return (funArgs)
   #parse variables (except @pipe, @pipefun, etc)
   for (i in 1:length(funArgs)) {
     v <- funArgs[[i]]
     if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
-      v <- substr(v, 2, nchar(v))
-      tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))
-      if (length(tr) > 0) {
-        vval <- Get(tr[1], function(x) x$variables[[v]])[[1]]
-        funArgs[[i]] <- vval
+      if (!identical(substr(v, nchar(v), nchar(v)), ")")) {
+        v <- substr(v, 2, nchar(v))
+        tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))
+        if (length(tr) > 0) {
+          vval <- Get(tr[1], function(x) x$variables[[v]])[[1]]
+          funArgs[[i]] <- vval
+        }
+      } else {
+        #macro
+        substr(v, 2, nchar(v)) %>% parse(text = .) -> funArgs[[i]]
       }
     }
 
@@ -154,7 +161,12 @@ ParseVariables <- function(node) {
   return (funArgs)
 }
 
-#' Get variables that are dynamic
+
+
+
+#' Get variables that are dynamic, such
+#' as @pipe, @pipefun or @context. Assumes non-dynamic
+#' variables have already been parsed.
 GetDynamicVariables <- function(node) {
   funArgs <- node$arguments %>% unlist
   funArgs <- funArgs[substr(funArgs, 1, 1) == "@"]
@@ -176,9 +188,9 @@ ParseFun <- function(node) {
     CallStep <- function() {
       #if (node$name == "SMA") browser()
       #parse parameters
-      argumentNames <- ls()
-      myArgs <- lapply(argumentNames, function(x) get(x))
-      names(myArgs) <- argumentNames
+      parameterNames <- ls()
+      myArgs <- lapply(parameterNames, function(x) get(x))
+      names(myArgs) <- parameterNames
 
       if ("..." %in% names(formals())) ellipsis <- list(...)
       else ellipsis <- list()
@@ -223,17 +235,7 @@ ParseFun <- function(node) {
 #' Create the function on the tap
 ParseTapFun <- function(node) {
   child <- node$children[[1]]
-  CallStep <- function() {
-    argumentNames <- ls()
-    myArgs <- lapply(argumentNames, function(x) get(x))
-    names(myArgs) <- argumentNames
-    if ("..." %in% names(formals())) ellipsis <- list(...)
-    else ellipsis <- list()
-    childParameters <- GetChildParameters(node, child, myArgs, ellipsis)
-    do.call(child$fun, childParameters)
-  }
-  CallStep <- SetFormals(CallStep, node)
-  return (CallStep)
+  return (child$fun)
 }
 
 
@@ -249,6 +251,7 @@ GetChildParameters <- function(node, child, myArgs, ellipsis) {
 
 
 SetFormals <- function(CallStep, node) {
+
   if (length(node$parameters) > 0) {
     parametersList <- node$parameters
     GetParam <- function(name, defaultValue) {
@@ -270,19 +273,18 @@ SetFormals <- function(CallStep, node) {
 
 
 
-#' Can only be called from inside a function!
-GetFunctionArguments <- function(fun) {
-  argumentNames <- ls()
-  arguments <- lapply(argumentNames, function(x) get(x))
-  names(arguments) <- argumentNames
-  return(arguments)
-}
+#' Replaces variables in funArgs that point to a tap parameter
+#' with the respective argument
+#'
+#' @param node the node
+#' @param funArgs the arguments of the processing step, i.e. the
+#' function to be called inside the node$fun
+#' @param myArgs the arguments of the node$fun (coming from the parameters
+#' declaration)
+#' @param ellipsis the ellipsis arguments
+ParseParameters <- function(node, funArgs, myArgs, ellipsis) {
 
-
-#' Replaces variables references that point to a tap parameter
-ParseParameters <- function(node, funArgs, parameterValues, ellipsis) {
-
-  if (!is.null(parameterValues)) {
+  if (!is.null(myArgs)) {
     for (i in 1:length(funArgs)) {
       v <- funArgs[[i]]
       if (identical(v, "@...")) {
@@ -290,8 +292,8 @@ ParseParameters <- function(node, funArgs, parameterValues, ellipsis) {
         funArgs <- funArgs[-i]
       } else if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
         v <- substr(v, 2, nchar(v))
-        if (!is.null(parameterValues[[v]])) {
-          funArgs[[i]] <- parameterValues[[v]]
+        if (!is.null(myArgs[[v]])) {
+          funArgs[[i]] <- myArgs[[v]]
         }
       } else if (identical(v, '@context')) {
         funArgs[[i]] <- node$root
@@ -314,17 +316,4 @@ GetUpstreamParameters <- function(node) {
 }
 
 
-do.call.intrnl <- function(what, args) {
-  if(is.character(what)) {
-    fn <- strsplit(what, "::")[[1]]
-    if(length(fn)==1) {
-      fun <- fn[[1]]
-      envir <- parent.frame()
-    } else {
-      fun <- fn[[2]]
-      envir <- asNamespace(fn[[1]])
-    }
-  }
 
-  do.call(fun, as.list(args), envir = envir)
-}
