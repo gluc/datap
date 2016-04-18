@@ -3,14 +3,14 @@
 \name{GetDynamicVariables}
 \alias{GetDynamicVariables}
 \title{Get variables that are dynamic, such
-as @pipe, @pipefun or @context. Assumes non-dynamic
+as @inflow, @inflowfun or @context. Assumes non-dynamic
 variables have already been parsed.}
 \usage{
 GetDynamicVariables(node)
 }
 \description{
 Get variables that are dynamic, such
-as @pipe, @pipefun or @context. Assumes non-dynamic
+as @inflow, @inflowfun or @context. Assumes non-dynamic
 variables have already been parsed.
 }
 

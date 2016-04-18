@@ -6,7 +6,7 @@ VARIABLE_RESERVED_NAMES_CONST <- c( 'pipe',
                                     'context')
 
 JOINT_TYPES_AGGREGATORS <- c('pipe', 'junction')
-JOINT_TYPES_JOINTS <- c( 'joint', 'factory')
+JOINT_TYPES_JOINTS <- c( 'processor', 'factory')
 JOINT_TYPES_QA <- c('warning', 'error')
 
 
@@ -140,7 +140,7 @@ RemoveNodes <- function(rawTree, name, lol) {
 #' with their values.
 ParseVariables <- function(node, funArgs) {
   if (length(funArgs) == 0) return (funArgs)
-  #parse variables (except @pipe, @pipefun, etc)
+  #parse variables (except @inflow, @inflowfun, etc)
   for (i in 1:length(funArgs)) {
     v <- funArgs[[i]]
     if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
@@ -165,7 +165,7 @@ ParseVariables <- function(node, funArgs) {
 
 
 #' Get variables that are dynamic, such
-#' as @pipe, @pipefun or @context. Assumes non-dynamic
+#' as @inflow, @inflowfun or @context. Assumes non-dynamic
 #' variables have already been parsed.
 GetDynamicVariables <- function(node) {
   funArgs <- node$arguments %>% unlist
@@ -197,19 +197,19 @@ ParseFun <- function(node) {
 
       funArgs <- ParseParameters(node, funArgs, myArgs, ellipsis)
 
-      if ("@pipe" %in% node$dynamicVariables) {
+      if ("@inflow" %in% node$dynamicVariables) {
         children <- lapply(node$children, function(child) {
           childParameters <- GetChildParameters(node, child, myArgs, ellipsis)
           do.call(child$fun, childParameters)
         })
         if (node$count == 1) children <- children[[1]]
 
-        funArgs[[which(funArgs == "@pipe")]] <- children
+        funArgs[[which(funArgs == "@inflow")]] <- children
       }
-      if ("@pipefun" %in% node$dynamicVariables) {
+      if ("@inflowfun" %in% node$dynamicVariables) {
         children <- lapply(node$children, function(child) child$fun)
         if (node$count == 1) children <- children[[1]]
-        funArgs[[which(funArgs == "@pipefun")]] <- children
+        funArgs[[which(funArgs == "@inflowfun")]] <- children
       }
       res <- do.call.intrnl(funNme, funArgs)
       if (node$type == "warning" || node$type == "error") {

@@ -2,15 +2,15 @@ modules:
   NA handling: &NaHandling
     type: pipe
     Fill NAs:
-      type: joint
+      type: processor
       function: zoo::na.locf
       arguments:
-        object: '@pipe'
+        object: '@inflow'
     NA Ratio:
       type: warning
       function: NaRatio
       arguments:
-        timeseries: '@pipe'
+        timeseries: '@inflow'
         variable: '@series'
         maxRatio: '@maxNaRatio'
   joint: &QYPipe
@@ -19,35 +19,35 @@ modules:
       type: factory
       function: Cache
       arguments:
-        f: '@pipefun'
+        f: '@inflowfun'
         timeout: 3600
     GetSeries:
-      type: joint
+      type: processor
       function: magrittr::use_series
       arguments:
-        a: '@pipe'
+        a: '@inflow'
         b: '@series'
     NAs: *NaHandling
     Regularize:
-        type: joint
+        type: processor
         function: Regularize
         arguments:
-          xts: '@pipe'
+          xts: '@inflow'
     Combine:
       type: junction
       function: Combine
       arguments:
-        listofxts: '@pipe'
+        listofxts: '@inflow'
       Quandl:
         type: pipe
         MinLength:
           type: error
           function: MinLength
           arguments:
-            timeseries: '@pipe'
+            timeseries: '@inflow'
             minLength: 10
         DownloadQuandl:
-          type: joint
+          type: processor
           function: Quandl::Quandl
           arguments:
             code: "@quandlCode"
@@ -58,16 +58,16 @@ modules:
           type: warning
           function: MinLength
           arguments:
-            timeseries: '@pipe'
+            timeseries: '@inflow'
             minLength: 10
         SetNames:
-          type: joint
+          type: processor
           function: SetNames
           arguments:
-            x: '@pipe'
+            x: '@inflow'
             names: [Open, High, Low, Close, Volume, 'Adjusted Close']
           DownloadYahoo:
-            type: joint
+            type: processor
             function: quantmod::getSymbols
             arguments:
               Symbols: "@yahooSymbol"
@@ -98,21 +98,18 @@ Closing Prices:
       Pipe:
         type: pipe
         DateRange:
-          type: joint
+          type: processor
           function: magrittr::extract
           arguments:
-            - '@pipe'
+            - '@inflow'
             - '@dteRange'
         QYPipe: *QYPipe
   Single Stocks:
     AAPL:
       type: tap
-      longname: "apple"
+      longname: "Apple"
       description: |
-        Quandl, fill missing values with Yahoo.
-        Backfill weekends and holidays.
-        Cache for an hour.
-        Warn if newest value older than a day.
+        Apple stock price
       variables:
         series: '@series'
         maxNaRatio: '@maxNaRatioDefault'
@@ -137,7 +134,7 @@ Closing Prices:
         startDate: '@startDateDefault'
         endDate: '@Today()'
       GetOnes:
-        type: joint
+        type: processor
         function: Ones
         arguments:
           startDate: '@startDate'
@@ -157,13 +154,13 @@ Technical Indicators:
     pipe:
       type: pipe
       SMA:
-        type: joint
+        type: processor
         function: TTR::SMA
         arguments:
-          x: '@pipe'
+          x: '@inflow'
           'n': '@periods'
       Tap:
-        type: joint
+        type: processor
         function: Tap
         arguments:
           context: '@context'
@@ -182,7 +179,7 @@ Technical Indicators:
       series:
       periods: 10
     Transform:
-      type: joint
+      type: processor
       function: TTR::SMA
       arguments:
         x: '@series'
