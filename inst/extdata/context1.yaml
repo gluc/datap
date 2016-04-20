@@ -1,4 +1,7 @@
 modules:
+  type: module
+  #these modules have no tap
+  #they only serve as anchors for other taps
   NA handling: &NaHandling
     type: pipe
     Fill NAs:
@@ -13,8 +16,15 @@ modules:
         timeseries: '@inflow'
         variable: '@series'
         maxRatio: '@maxNaRatio'
-  joint: &QYPipe
+  Quandle and Yahoo download: &QYPipe
     type: pipe
+    attributes:
+      description: |
+        This defines a reusable process
+        to download prices from Quandl,
+        overwrite missings with data
+        from Yahoo, do NA handling and
+        more. Return value: an xts object
     Cache:
       type: factory
       function: Cache
@@ -66,26 +76,29 @@ modules:
           arguments:
             x: '@inflow'
             names: [Open, High, Low, Close, Volume, 'Adjusted Close']
-          DownloadYahoo:
-            type: processor
-            function: quantmod::getSymbols
-            arguments:
-              Symbols: "@yahooSymbol"
-              auto.assign: FALSE
+        DownloadYahoo:
+          type: processor
+          function: quantmod::getSymbols
+          arguments:
+            Symbols: "@yahooSymbol"
+            auto.assign: FALSE
 ## taps
 Closing Prices:
+  type: structure
   variables:
-      series: Close
-      maxNaRatioDefault: 0.25
+    series: Close
+    maxNaRatioDefault: 0.25
   Indices:
+    type: structure
     SPX:
       type: tap
-      longname: "S&P 500 daily close"
-      description: |
-        Quandl, fill missing values with Yahoo.
-        Backfill weekends and holidays.
-        Cache for an hour.
-        Warn if newest value older than a day.
+      attributes:
+        longname: "S&P 500 daily close"
+        description: |
+          Quandl, fill missing values with Yahoo.
+          Backfill weekends and holidays.
+          Cache for an hour.
+          Warn if newest value older than a day.
       parameters:
         #parameterName: defaultArgument
         dteRange: 1990-01-01/2010-01-01
@@ -105,11 +118,13 @@ Closing Prices:
             - '@dteRange'
         QYPipe: *QYPipe
   Single Stocks:
+    type: structure
     AAPL:
       type: tap
-      longname: "Apple"
-      description: |
-        Apple stock price
+      attributes:
+        longname: "Apple"
+        description: |
+          Apple stock price
       variables:
         series: '@series'
         maxNaRatio: '@maxNaRatioDefault'
@@ -118,7 +133,8 @@ Closing Prices:
       pipe: *QYPipe
     MSFT:
       type: tap
-      longname: "Microsoft"
+      attributes:
+        longname: "Microsoft"
       variables:
         series: '@series'
         maxNaRatio: 0.0
@@ -126,6 +142,7 @@ Closing Prices:
         quandlCode: "YAHOO/MSFT"
       pipe: *QYPipe
   Fabricated:
+    type: structure
     variables:
       startDateDefault: 1990-01-01
     Ones:
@@ -141,12 +158,14 @@ Closing Prices:
           endDate: '@endDate'
           colname: '@series'
 Technical Indicators:
+  type: structure
   MATap:
     type: tap
-    longname: "Moving Average"
-    description: |
-      This demonstrates how to create
-      taps based on other taps
+    attributes:
+      longname: "Moving Average"
+      description: |
+        This demonstrates how to create
+        taps based on other taps
     parameters:
       tapPath:
       periods: 10
@@ -166,15 +185,15 @@ Technical Indicators:
           context: '@context'
           tapPath: '@tapPath'
           ...: '@...'
-
   MA:
     type: tap
-    longname: "Moving Average"
-    description: |
-      This demonstrates how to create
-      taps without a data source. Use it
-      as a function, with any xts as an
-      input!
+    attributes:
+      longname: "Moving Average"
+      description: |
+        This demonstrates how to create
+        taps without a data source. Use it
+        as a function, with any xts as an
+        input!
     parameters:
       series:
       periods: 10

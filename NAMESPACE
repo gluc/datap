@@ -3,6 +3,7 @@
 S3method(plot,tap)
 S3method(print,context)
 export(Cache)
+export(CheckSyntax)
 export(Combine)
 export(ConstantReturn)
 export(CreateTree)

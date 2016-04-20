@@ -32,6 +32,12 @@ Load <- function(con) {
 
   tree <- CreateTree(lol)
 
+  CheckSyntaxRawTree(tree)
+
+  SimplifyTree(tree)
+
+  tree$name <- "context"
+
   class(tree) <- c("context", class(tree))
   tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
 
@@ -64,40 +70,44 @@ CreateTree <- function(lol) {
   RemoveNodes(rawTree, "arguments", lol)
   RemoveNodes(rawTree, "variables", lol)
   RemoveNodes(rawTree, "parameters", lol)
+  RemoveNodes(rawTree, "attributes", lol)
 
-  rawTree$Do(function(node) node$arguments <- as.list(node$arguments), filterFun = function(x) !is.null(x$arguments))
-  #rawTree$Do(function(node) node$parameters <- as.list(node$parameters), filterFun = function(x) !is.null(x$parameters))
 
-  rawTree$Do(function(tapNode) if (is.null(tapNode$parameters)) tapNode$parameters <- list(),
-             filterFun = function(node) identical(node$type, "tap"))
 
-  #convert pipe sequence to children
-  rawTree$Do(function(pipeNode) {
-                parent <- pipeNode$children[[1]]
-                for (child in pipeNode$children[-1]) {
-                  pipeNode$RemoveChild(child$name)
-                  parent$AddChildNode(child)
-                  parent <- child
-                }
-
-              },
-             filterFun = function(node) identical(node$type, "pipe"))
-
-  #remove unnecessary pipes
-  #except under junctions, to avoid
-  #name conflicts
-
-  SimplifyTree(rawTree)
-  rawTree$Prune(pruneFun = function(node) {
-    any(node$Get("type") == "tap", na.rm = TRUE) || any(node$Get("type", traversal = "ancestor") == "tap", na.rm = TRUE)
-  })
-  rawTree$name <- "context"
   return (rawTree)
 
 }
 
 
+
 SimplifyTree <- function(tree) {
+
+  #prune modules
+  tree$Prune(pruneFun = function(node) !identical(node$type, "module"))
+
+  #prune branches without a tap ()
+  tree$Prune(pruneFun = function(node) {
+    any(node$Get("type") == "tap", na.rm = TRUE) || any(node$Get("type", traversal = "ancestor") == "tap", na.rm = TRUE)
+  })
+
+  tree$Do(function(node) node$arguments <- as.list(node$arguments), filterFun = function(x) !is.null(x$arguments))
+  #rawTree$Do(function(node) node$parameters <- as.list(node$parameters), filterFun = function(x) !is.null(x$parameters))
+
+  tree$Do(function(tapNode) if (is.null(tapNode$parameters)) tapNode$parameters <- list(),
+             filterFun = function(node) identical(node$type, "tap"))
+
+  #convert pipe sequence to children
+  tree$Do(function(pipeNode) {
+    parent <- pipeNode$children[[1]]
+    for (child in pipeNode$children[-1]) {
+      pipeNode$RemoveChild(child$name)
+      parent$AddChildNode(child)
+      parent <- child
+    }
+
+  },
+  filterFun = function(node) identical(node$type, "pipe"))
+
   tree$Do(function(junctionNode) {
     rf <- function(node) {
       if (!identical(node$type, "pipe") && !identical(node$type, "junction")) return (node)
