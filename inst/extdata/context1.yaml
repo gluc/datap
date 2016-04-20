@@ -1,3 +1,10 @@
+XYZ:
+  type: pipe
+  Fill NAs:
+    type: processor
+    function: zoo::na.locf
+    arguments:
+      object: '@inflow'
 modules:
   type: module
   #these modules have no tap

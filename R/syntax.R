@@ -20,9 +20,12 @@ CheckSyntax <- function(con) {
 
   tree$Do(function(joint) joint$hasErrors <- Aggregate(joint,
                                                        function(usj) {
+                                                         if (usj$name == ".errors")
                                                          if (length(usj$hasErrors) > 0) return(usj$hasErrors)
+                                                         if (usj$name == ".errors") return (TRUE)
                                                          if (!usj$isLeaf) return (NULL)
-                                                         usj$parent$name == ".errors"
+                                                         return (FALSE)
+
                                                        },
                                                        aggFun = any),
           traversal = "post-order")
@@ -34,113 +37,159 @@ CheckSyntax <- function(con) {
 }
 
 
-HasErrors <- function(joint) {
-
-  Aggregate(joint,
-            function(usj) {
-              if (!usj$isLeaf) return (NULL)
-              usj$parent$name == ".errors"
-            },
-            aggFun = any)
-
-}
-
-
 CheckSyntaxRawTree <- function(rawTree) {
 
-  rawTree$Do(function(joint) CheckJointSyntax(joint), filterFun = isNotRoot)
+  syntaxDef <- GetSyntaxDefinition()
+  rawTree$Do(function(joint) CheckJoint(joint, syntaxDef), filterFun = isNotRoot)
 
 }
 
-
+#'@export
 print.datapsyntax <- function(x, ...) {
-  res <- paste0('  $', x$type, "Name:")
-  res <- paste0(res, "\n", '    type: ', x$type)
+  #parent
+  res <- paste0(paste0(">", x$allowedParents), collapse = '|')
+  if (!x$mustHaveParent) res <- paste0("[", res, "]")
+  res <- paste0(res, '\n')
 
-}
+  #jointname
+  res <- paste0(res, '  $', x$type, "Name:", "\n")
 
+  #type
+  res <- paste0(res, '    type: ', x$type, "\n")
 
-CheckJointSyntax <- function(joint) {
-
-  syntaxDef <- GetSyntaxDefinition(joint)
-  do.call(CheckJoint, c(joint, syntaxDef))
-
-}
-
-
-GetSyntaxDefinition <- function(joint) {
-  if (identical(joint$type, "structure") ) {
-
-    res <- list(allowedElements = c("variables"),
-                requiredElements = c(),
-                allowedParents = c("structure"),
-                minChildren = 1,
-                maxChildren = .Machine$integer.max)
-
-  } else if (identical(joint$type, "tap") ) {
-
-    res <- list(allowedElements = c("attributes", "parameters", "variables"),
-               requiredElements = c(),
-               allowedParents = c("structure"),
-               minChildren = 1,
-               maxChildren = 1)
-
-  } else if(identical(joint$type, "pipe") ) {
-
-    res <- list(allowedElements = c("attributes", "variables"),
-                requiredElements = c(),
-                allowedParents = c("tap", "pipe", "junction", "module"),
-                minChildren = 1,
-                maxChildren = .Machine$integer.max)
-
-  } else if(identical(joint$type, "junction") ) {
-
-    res <- list(allowedElements = c("attributes", "variables", "function", "arguments"),
-               requiredElements = c("function"),
-               allowedParents = c("pipe", "junction", "tap", "module"),
-               minChildren = 1,
-               maxChildren = .Machine$integer.max)
-
-  } else if(identical(joint$type, "processor") ) {
-
-    res <- list(allowedElements = c("attributes", "function", "arguments"),
-               requiredElements = c("function"),
-               allowedParents = c("pipe", "junction", "tap"),
-               minChildren = 0,
-               maxChildren = 0)
-
-  } else if(identical(joint$type, "factory") ) {
-
-    res <- list(allowedElements = c("attributes", "function", "arguments"),
-               requiredElements = c("function"),
-               allowedParents = c("pipe"),
-               minChildren = 0,
-               maxChildren = 0)
-
-  } else if(identical(joint$type, "warning") || identical(joint$type, "error") ) {
-
-    res <- list(allowedElements = c("attributes", "function", "arguments"),
-               requiredElements = c("function"),
-               allowedParents = c("pipe"),
-               minChildren = 0,
-               maxChildren = 0)
-
-  } else if(identical(joint$type, "module")) {
-
-    res <- list(allowedElements = c("attributes"),
-                requiredElements = c(),
-                allowedParents = c("module"),
-                minChildren = 1,
-                maxChildren = .Machine$integer.max)
-
-
-  } else if (!is.null(joint$type)) {
-    AssertSyntax(FALSE, joint, "", 1, "Unknown type ", joint$type, ".")
-  } else if (!isRoot(joint)) {
-    AssertSyntax(FALSE, joint, "", 2, "Parsing problem!")
+  #elements
+  for (element in c("attributes", "variables", "parameters", "function", "arguments")) {
+    if (element %in% x$allowedElements) {
+      elestring <- paste0(">", element)
+      if (!element %in% x$requiredElements) {
+        elestring <- paste0("[", elestring, "]")
+      }
+      res <- paste0(res, "    ", elestring, "\n")
+    }
   }
-  class(res) <- c("datapsyntax", class(res))
-  return (res)
+
+  #children
+  if (x$maxChildren > 0) {
+    chld <- NULL
+    if (x$maxChildren > 1) chld <- paste0(chld, "n* ")
+    chld <- paste0(chld, paste0(paste0(">", x$allowedChildren), collapse = "|"))
+    if (x$minChildren == 0) chld <- paste0("[", chld, "]")
+    chld <- paste0("    ", chld)
+    res <- paste0(res, chld)
+  }
+  cat(res)
+  invisible (res)
+}
+
+
+
+
+#' @export
+GetSyntaxDefinition <- function(type = NULL) {
+    res <- list()
+    res$structures <- list(
+      type = "structure",
+      allowedElements = c("attributes", "variables"),
+      requiredElements = c(),
+      allowedParents = c("structure"),
+      mustHaveParent = FALSE,
+      minChildren = 1,
+      maxChildren = .Machine$integer.max
+    )
+
+    res$tap <- list(
+      type = "tap",
+      allowedElements = c("attributes", "parameters", "variables"),
+      requiredElements = c(),
+      allowedParents = c("structure"),
+      mustHaveParent = FALSE,
+      minChildren = 1,
+      maxChildren = 1
+    )
+
+    res$pipe <- list(
+      type = "pipe",
+      allowedElements = c("attributes", "variables"),
+      requiredElements = c(),
+      allowedParents = c("tap", "pipe", "junction", "module"),
+      mustHaveParent = TRUE,
+      minChildren = 1,
+      maxChildren = .Machine$integer.max
+    )
+
+    res$junction <- list(
+      type = "junction",
+      allowedElements = c("attributes", "variables", "function", "arguments"),
+      requiredElements = c("function"),
+      allowedParents = c("pipe", "junction", "tap", "module"),
+      mustHaveParent = TRUE,
+      minChildren = 1,
+      maxChildren = .Machine$integer.max
+    )
+
+    res$processor <- list(
+      type = "processor",
+      allowedElements = c("attributes", "function", "arguments"),
+      requiredElements = c("function"),
+      allowedParents = c("pipe", "junction", "tap"),
+      mustHaveParent = TRUE,
+      minChildren = 0,
+      maxChildren = 0
+    )
+
+    res$factory <- list(
+      type = "factory",
+      allowedElements = c("attributes", "function", "arguments"),
+      requiredElements = c("function"),
+      allowedParents = c("pipe"),
+      mustHaveParent = TRUE,
+      minChildren = 0,
+      maxChildren = 0
+    )
+
+    res$warning <- list(
+      type = "warning",
+      allowedElements = c("attributes", "function", "arguments"),
+      requiredElements = c("function"),
+      allowedParents = c("pipe"),
+      mustHaveParent = TRUE,
+      minChildren = 0,
+      maxChildren = 0
+    )
+
+    res$error <- list(
+      type = "error",
+      allowedElements = c("attributes", "function", "arguments"),
+      requiredElements = c("function"),
+      allowedParents = c("pipe"),
+      mustHaveParent = TRUE,
+      minChildren = 0,
+      maxChildren = 0
+    )
+
+    res$module <- list(
+      type = "module",
+      allowedElements = c("attributes"),
+      requiredElements = c(),
+      allowedParents = c("module"),
+      mustHaveParent = TRUE,
+      minChildren = 1,
+      maxChildren = .Machine$integer.max
+    )
+
+
+  for(joint in res) {
+    res[sapply(res, function(childCandidate) joint$type %in% childCandidate$allowedParents)] %>%
+    sapply(function(e) e$type) %>%
+    unname ->
+    joint$allowedChildren
+    class(joint) <- c("datapsyntax", class(joint))
+    res[[joint$type]] <- joint
+  }
+
+
+  if (is.null(type)) return (res)
+  else return (res[[type]])
 }
 
 
@@ -168,13 +217,13 @@ NonErrorCount <- function(joint) {
   return (res)
 }
 
-CheckJoint <- function(joint, allowedElements, requiredElements, allowedParents, allowedChildren, minChildren, maxChildren) {
+CheckJoint <- function(joint, syntaxDefinition) {
+  mySyn <- syntaxDefinition[[joint$type]]
+  CheckChildCount(joint, mySyn$minChildren, mySyn$maxChildren)
 
-  CheckChildCount(joint, minChildren, maxChildren)
-
-  CheckAllowedParents(joint, allowedParents)
-  CheckAllowedElements(joint, allowedElements)
-  CheckRequiredElements(joint, requiredElements)
+  CheckAllowedParents(joint, mySyn$allowedParents, mySyn$mustHaveParent)
+  CheckAllowedElements(joint, mySyn$allowedElements)
+  CheckRequiredElements(joint, mySyn$requiredElements)
   CheckAttributes(joint)
   CheckParameters(joint)
   CheckVariables(joint)
@@ -208,11 +257,18 @@ CheckAllowedChildren <- function(joint, allowedChildren) {
 }
 
 
-CheckAllowedParents <- function(joint, allowedParents) {
+CheckAllowedParents <- function(joint, allowedParents, mustHaveParent) {
+  #if (joint$name == "XYZ") browser()
+  AssertSyntax(!mustHaveParent || !joint$parent$isRoot,
+               joint,
+               "parent",
+               1200,
+               joint$type, " requires another downstream joint")
+
   AssertSyntax(joint$parent$isRoot || joint$parent$type %in% allowedParents,
                joint,
-               "",
-               1200,
+               "parent",
+               1201,
                "Downstream of ", joint$type, " must be any of ", paste(allowedParents, collapse = ", "), ".")
 
 }
