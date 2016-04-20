@@ -20,11 +20,9 @@ CheckSyntax <- function(con) {
 
   tree$Do(function(joint) joint$hasErrors <- Aggregate(joint,
                                                        function(usj) {
-                                                         if (usj$name == ".errors")
                                                          if (length(usj$hasErrors) > 0) return(usj$hasErrors)
-                                                         if (usj$name == ".errors") return (TRUE)
                                                          if (!usj$isLeaf) return (NULL)
-                                                         return (FALSE)
+                                                         return (usj$parent$name == ".errors" || usj$parent$parent$name == ".errors")
 
                                                        },
                                                        aggFun = any),
@@ -172,7 +170,7 @@ GetSyntaxDefinition <- function(type = NULL) {
       allowedElements = c("attributes"),
       requiredElements = c(),
       allowedParents = c("module"),
-      mustHaveParent = TRUE,
+      mustHaveParent = FALSE,
       minChildren = 1,
       maxChildren = .Machine$integer.max
     )
@@ -237,13 +235,13 @@ CheckChildCount <- function(joint, minChildren, maxChildren) {
                joint,
                "",
                1000,
-               joint$type, " must have at least", minChildren, "upstream joints.")
+               joint$type, " '", joint$name, "' must have at least", minChildren, "upstream joints.")
 
   AssertSyntax(NonErrorCount(joint) <= maxChildren,
                joint,
                "",
                1001,
-               joint$type, " cannot have more than ", maxChildren, "upstream joints.")
+               joint$type, " '", joint$name, "' cannot have more than ", maxChildren, "upstream joints.")
 }
 
 
@@ -252,7 +250,7 @@ CheckAllowedChildren <- function(joint, allowedChildren) {
                joint,
                "",
                1100,
-               "Upstream of ", joint$type, " must be any of ", paste(allowedChildren, collapse = ", "), ".")
+               "Upstream of ", joint$type, " '", joint$name, "' must be any of ", paste(allowedChildren, collapse = ", "), ".")
 
 }
 
@@ -261,15 +259,15 @@ CheckAllowedParents <- function(joint, allowedParents, mustHaveParent) {
   #if (joint$name == "XYZ") browser()
   AssertSyntax(!mustHaveParent || !joint$parent$isRoot,
                joint,
-               "parent",
+               "downstream",
                1200,
-               joint$type, " requires another downstream joint")
+               joint$type, " '", joint$name, "' requires a downstream joint.")
 
   AssertSyntax(joint$parent$isRoot || joint$parent$type %in% allowedParents,
                joint,
-               "parent",
+               "downstream",
                1201,
-               "Downstream of ", joint$type, " must be any of ", paste(allowedParents, collapse = ", "), ".")
+               "Downstream of ", joint$type, " '", joint$name, "' must be any of ", paste(allowedParents, collapse = ", "), ".")
 
 }
 
@@ -279,7 +277,7 @@ CheckAllowedElements <- function(joint, allowedElements) {
                joint,
                "",
                1300,
-               "Only ", paste0(allowedElements, collapse = ", "), " allowed in ", joint$type)
+               "Only ", paste0(allowedElements, collapse = ", "), " allowed in ", joint$type, " '", joint$name, "'")
 }
 
 
@@ -288,7 +286,7 @@ CheckRequiredElements <- function(joint, requiredElements) {
                joint,
                "",
                1400,
-               joint$type, " must have elements ", requiredElements, ".")
+               joint$type, " '", joint$name, "' must have elements ", requiredElements, ".")
 }
 
 
