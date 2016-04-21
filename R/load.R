@@ -1,8 +1,8 @@
 
 
 
-VARIABLE_RESERVED_NAMES_CONST <- c( 'pipe',
-                                    'pipefun',
+VARIABLE_RESERVED_NAMES_CONST <- c( 'inflow',
+                                    'inflowfun',
                                     'context')
 
 JOINT_TYPES_FLOW <- c('pipe', 'junction')
@@ -39,7 +39,7 @@ Load <- function(con) {
 
   ParseTree(tree)
 
-  #CheckReferences(tree)
+  CheckReferences(tree)
   return (tree)
 }
 
@@ -171,7 +171,7 @@ ParseVariables <- function(node, funArgs) {
   for (i in 1:length(funArgs)) {
     v <- funArgs[[i]]
     if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
-      if (!identical(substr(v, nchar(v), nchar(v)), ")")) {
+      if (!IsMacro(v)) {
         v <- substr(v, 2, nchar(v))
         tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))
         if (length(tr) > 0) {
@@ -188,7 +188,9 @@ ParseVariables <- function(node, funArgs) {
   return (funArgs)
 }
 
-
+IsMacro <- function(v) {
+  identical(substr(v, nchar(v), nchar(v)), ")")
+}
 
 
 #' Get variables that are dynamic, such

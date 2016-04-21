@@ -241,20 +241,20 @@ $(document).ready(function () {
 <pre><code>&gt;structure|&gt;tap|&gt;pipe|&gt;junction
   variables:
     n* $variableName: $value</code></pre>
-<p>The names of <em><a href="#special-variable-references">special variable references</a></em> cannot be used as variable name (namely: “inflow”, “inflowfun”, “context”)</p>
+<p>The names of <em><a href="#special-variable-references">special variable references</a></em> cannot be used as variable name (namely: “inflow”, “inflowfun”, “context”).</p>
+<p>The <em>scope</em> of a variable is always upstream. A variable value can be overwritten in an upstream joint.</p>
 <p>Example:</p>
 <pre class="yaml"><code>Closing Prices:
   type: structure
   variables:
     series: Close
     startDate: 2000-01-01</code></pre>
-<p>You can overwrite a variable value in an upstream joint.</p>
 </div>
 <div id="reference" class="section level2">
 <h2><em>reference</em></h2>
 <div id="variable-and-parameter-reference" class="section level3">
 <h3><em>variable</em> and <em>parameter</em> reference</h3>
-<p>A <a href="#reference"><code>&gt;reference</code></a> has an <em><span class="citation">@*</span> prefix, and refers to a downstream </em>variable<em>, a </em>parameter<em>, a </em>special variable reference<em>, or a </em>macro*.</p>
+<p>A <a href="#reference"><code>&gt;reference</code></a> has an <em><code>@</code></em> prefix, and refers to a downstream <a href="#variables"><code>&gt;variable</code></a> a <a href="#parameters"><code>&gt;parameter</code></a>, a <a href="#special-variable-reference"><code>&gt;special variable reference</code></a>, or a <a href="#macro"><code>&gt;macro</code></a>.</p>
 <p>You can use a <a href="#reference"><code>&gt;reference</code></a> in a <em>parameter</em>, an <em>argument</em>, or in another <em>variable</em>.</p>
 <pre><code>&gt;parameters|&gt;arguments|&gt;variables:
   $name: @$variableReferenceName</code></pre>
@@ -422,7 +422,7 @@ $(document).ready(function () {
 </div>
 <div id="arguments" class="section level4">
 <h4><em>arguments</em></h4>
-<p>The <a href="#arguments"><code>&gt;arguments</code></a> section define what arguments will be passed to a function.</p>
+<p>The <a href="#arguments"><code>&gt;arguments</code></a> section defines the arguments that are passed to [<code>&gt;function</code>].</p>
 <p>The arguments can be <em>named</em> or <em>unnamed</em>:</p>
 <pre><code>&gt;processor|&gt;error|&gt;warning
   arguments:

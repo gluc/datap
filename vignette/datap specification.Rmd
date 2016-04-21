@@ -99,7 +99,7 @@ A [`>variables`](#variables) section is an *associative list*, called "variables
     n* $variableName: $value
 ```
 
-The names of *[special variable references](#special-variable-references)* cannot be used as variable name (namely: "inflow", "inflowfun", "context").
+The names of *[special references](#special-references)* cannot be used as variable name (namely: "inflow", "inflowfun", "context").
 
 The *scope* of a variable is always upstream. A variable value can be overwritten in an upstream joint.
 
@@ -118,7 +118,7 @@ Closing Prices:
 
 ### *variable* and *parameter* reference
 
-A [`>reference`](#reference) has an *@* prefix, and refers to a downstream *variable*, a *parameter*, a *special variable reference*, or a *macro*.
+A [`>reference`](#reference) has an *`@`* prefix, and refers to a downstream [`>variable`](#variables) a [`>parameter`](#parameters), a [`>special  reference`](#special-reference), or a [`>macro`](#macro-reference).
 
 You can use a [`>reference`](#reference) in a *parameter*, an *argument*, or in another *variable*.
 
@@ -146,7 +146,7 @@ AAPL:
   pipe: *QYPipe
 ```
 
-### special variable reference
+### special reference
 
 The following variable references can be used without defining the variables downstream:
 

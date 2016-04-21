@@ -193,7 +193,7 @@ GetSyntaxDefinition <- function(type = NULL) {
 
 
 
-AssertSyntax <- function(condition, joint, errorSection, errorCode, ...) {
+AssertSyntax <- function(condition, joint, errorSection, errorSubsection, errorCode, ...) {
   if (!condition) {
     msg <- list(...)
     msg <- paste0(msg, collapse = "")
@@ -203,7 +203,11 @@ AssertSyntax <- function(condition, joint, errorSection, errorCode, ...) {
       if (!errorSection %in% names(err$children)) err$AddChild(errorSection)
       err <- err[[errorSection]]
     }
-    err <- err$AddChild(errorCode)
+    if (nchar(errorSubsection) > 0) {
+      if (!errorSubsection %in% names(err$children)) err$AddChild(errorSubsection)
+      err <- err[[errorSubsection]]
+    }
+    err$code <- errorCode
     err$message <- msg
   }
   return (condition)
@@ -234,12 +238,14 @@ CheckSyntaxJoint <- function(joint, syntaxDefinition) {
 CheckSyntaxChildCount <- function(joint, minChildren, maxChildren) {
   AssertSyntax(NonErrorCount(joint) >= minChildren,
                joint,
+               "upstreamcount",
                "",
                1000,
                joint$type, " '", joint$name, "' must have at least", minChildren, "upstream joints.")
 
   AssertSyntax(NonErrorCount(joint) <= maxChildren,
                joint,
+               "upstreamCount",
                "",
                1001,
                joint$type, " '", joint$name, "' cannot have more than ", maxChildren, "upstream joints.")
@@ -249,6 +255,7 @@ CheckSyntaxChildCount <- function(joint, minChildren, maxChildren) {
 CheckSyntaxAllowedChildren <- function(joint, allowedChildren) {
   AssertSyntax(!is.null(child$type) && child$type %in% allowedChildren,
                joint,
+               "upstream",
                "",
                1100,
                "Upstream of ", joint$type, " '", joint$name, "' must be any of ", paste(allowedChildren, collapse = ", "), ".")
@@ -261,12 +268,14 @@ CheckSyntaxAllowedParents <- function(joint, allowedParents, mustHaveParent) {
   AssertSyntax(!mustHaveParent || !joint$parent$isRoot,
                joint,
                "downstream",
+               "",
                1200,
                joint$type, " '", joint$name, "' requires a downstream joint.")
 
   AssertSyntax(joint$parent$isRoot || joint$parent$type %in% allowedParents,
                joint,
                "downstream",
+               "",
                1201,
                "Downstream of ", joint$type, " '", joint$name, "' must be any of ", paste(allowedParents, collapse = ", "), ".")
 
@@ -276,6 +285,7 @@ CheckSyntaxAllowedParents <- function(joint, allowedParents, mustHaveParent) {
 CheckSyntaxAllowedElements <- function(joint, allowedElements) {
   AssertSyntax(all(joint$fields %>% extract(., . != "type") %in% allowedElements),
                joint,
+               "allowedElements",
                "",
                1300,
                "Only ", paste0(allowedElements, collapse = ", "), " allowed in ", joint$type, " '", joint$name, "'")
@@ -285,6 +295,7 @@ CheckSyntaxAllowedElements <- function(joint, allowedElements) {
 CheckSyntaxRequiredElements <- function(joint, requiredElements) {
   AssertSyntax(all(requiredElements %in% joint$fields %>% extract(., . != "type")),
                joint,
+               "requiredElements",
                "",
                1400,
                joint$type, " '", joint$name, "' must have elements ", requiredElements, ".")
@@ -306,12 +317,14 @@ CheckSyntaxParameters <- function(joint) {
     cond <- AssertSyntax(is.list(prms),
                  joint,
                  "parameters",
+                 "",
                  1600,
                  "Parameters must be a list.")
     if (!cond) return()
     AssertSyntax(length(prms) == 0 || !is.null(names(prms)),
                  joint,
                  "parameters",
+                 "",
                  1601,
                  "Parameters must be an associative list.")
 
@@ -327,6 +340,7 @@ CheckSyntaxVariables <- function(joint) {
     cond <- AssertSyntax(is.list(vrbls),
                  joint,
                  "variables",
+                 "",
                  1700,
                  "Variables must be a list.")
 
@@ -335,6 +349,7 @@ CheckSyntaxVariables <- function(joint) {
     AssertSyntax(!is.null(names(vrbls)),
                  joint,
                  "variables",
+                 "",
                  1701,
                  "Variables must be an associative list.")
 
@@ -349,6 +364,7 @@ CheckSyntaxFunction <- function(joint) {
     AssertSyntax(is.character(fnct),
                  joint,
                  "function",
+                 "",
                  1800,
                  "Function must be a character.")
   }
@@ -362,6 +378,7 @@ CheckSyntaxArguments <- function(joint) {
     cond <- AssertSyntax(is.vector(args),
                          joint,
                          "arguments",
+                         "",
                          1900,
                          "Arguments must be a list.")
 
