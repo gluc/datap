@@ -9,12 +9,13 @@
 #' print(errors, na.print = "")
 #'
 #' @importFrom yaml yaml.load
+#' @importFrom data.tree Aggregate
 #' @export
 CheckSyntax <- function(con) {
   yamlString <- paste0(readLines(con), collapse = "\n")
   lol <- yaml.load(yamlString)
 
-  tree <- CreateTree(lol)
+  tree <- CreateRawTree(lol)
 
   CheckSyntaxRawTree(tree)
 
@@ -38,7 +39,7 @@ CheckSyntax <- function(con) {
 CheckSyntaxRawTree <- function(rawTree) {
 
   syntaxDef <- GetSyntaxDefinition()
-  rawTree$Do(function(joint) CheckJoint(joint, syntaxDef), filterFun = isNotRoot)
+  rawTree$Do(function(joint) CheckSyntaxJoint(joint, syntaxDef), filterFun = isNotRoot)
 
 }
 
@@ -56,7 +57,7 @@ print.datapsyntax <- function(x, ...) {
   res <- paste0(res, '    type: ', x$type, "\n")
 
   #elements
-  for (element in c("attributes", "variables", "parameters", "function", "arguments")) {
+  for (element in ELEMENTS) {
     if (element %in% x$allowedElements) {
       elestring <- paste0(">", element)
       if (!element %in% x$requiredElements) {
@@ -215,22 +216,22 @@ NonErrorCount <- function(joint) {
   return (res)
 }
 
-CheckJoint <- function(joint, syntaxDefinition) {
+CheckSyntaxJoint <- function(joint, syntaxDefinition) {
   mySyn <- syntaxDefinition[[joint$type]]
-  CheckChildCount(joint, mySyn$minChildren, mySyn$maxChildren)
+  CheckSyntaxChildCount(joint, mySyn$minChildren, mySyn$maxChildren)
 
-  CheckAllowedParents(joint, mySyn$allowedParents, mySyn$mustHaveParent)
-  CheckAllowedElements(joint, mySyn$allowedElements)
-  CheckRequiredElements(joint, mySyn$requiredElements)
-  CheckAttributes(joint)
-  CheckParameters(joint)
-  CheckVariables(joint)
-  CheckArguments(joint)
+  CheckSyntaxAllowedParents(joint, mySyn$allowedParents, mySyn$mustHaveParent)
+  CheckSyntaxAllowedElements(joint, mySyn$allowedElements)
+  CheckSyntaxRequiredElements(joint, mySyn$requiredElements)
+  CheckSyntaxAttributes(joint)
+  CheckSyntaxParameters(joint)
+  CheckSyntaxVariables(joint)
+  CheckSyntaxArguments(joint)
 
 
 }
 
-CheckChildCount <- function(joint, minChildren, maxChildren) {
+CheckSyntaxChildCount <- function(joint, minChildren, maxChildren) {
   AssertSyntax(NonErrorCount(joint) >= minChildren,
                joint,
                "",
@@ -245,7 +246,7 @@ CheckChildCount <- function(joint, minChildren, maxChildren) {
 }
 
 
-CheckAllowedChildren <- function(joint, allowedChildren) {
+CheckSyntaxAllowedChildren <- function(joint, allowedChildren) {
   AssertSyntax(!is.null(child$type) && child$type %in% allowedChildren,
                joint,
                "",
@@ -255,7 +256,7 @@ CheckAllowedChildren <- function(joint, allowedChildren) {
 }
 
 
-CheckAllowedParents <- function(joint, allowedParents, mustHaveParent) {
+CheckSyntaxAllowedParents <- function(joint, allowedParents, mustHaveParent) {
   #if (joint$name == "XYZ") browser()
   AssertSyntax(!mustHaveParent || !joint$parent$isRoot,
                joint,
@@ -272,7 +273,7 @@ CheckAllowedParents <- function(joint, allowedParents, mustHaveParent) {
 }
 
 
-CheckAllowedElements <- function(joint, allowedElements) {
+CheckSyntaxAllowedElements <- function(joint, allowedElements) {
   AssertSyntax(all(joint$fields %>% extract(., . != "type") %in% allowedElements),
                joint,
                "",
@@ -281,7 +282,7 @@ CheckAllowedElements <- function(joint, allowedElements) {
 }
 
 
-CheckRequiredElements <- function(joint, requiredElements) {
+CheckSyntaxRequiredElements <- function(joint, requiredElements) {
   AssertSyntax(all(requiredElements %in% joint$fields %>% extract(., . != "type")),
                joint,
                "",
@@ -293,12 +294,12 @@ CheckRequiredElements <- function(joint, requiredElements) {
 
 
 
-CheckAttributes <- function(joint) {
+CheckSyntaxAttributes <- function(joint) {
   #nothing to check
 
 }
 
-CheckParameters <- function(joint) {
+CheckSyntaxParameters <- function(joint) {
   prms <- joint$parameters
   if (!is.null(prms)) {
 
@@ -318,7 +319,7 @@ CheckParameters <- function(joint) {
   }
 }
 
-CheckVariables <- function(joint) {
+CheckSyntaxVariables <- function(joint) {
   vrbls <- joint$variables
 
   if (!is.null(vrbls)) {
@@ -342,7 +343,7 @@ CheckVariables <- function(joint) {
 }
 
 
-CheckFunction <- function(joint) {
+CheckSyntaxFunction <- function(joint) {
   fnct <- joint$fun
   if (!is.null(fnct)) {
     AssertSyntax(is.character(fnct),
@@ -354,7 +355,7 @@ CheckFunction <- function(joint) {
 }
 
 
-CheckArguments <- function(joint) {
+CheckSyntaxArguments <- function(joint) {
   args <- joint$arguments
   if (!is.null(args)) {
     if (joint$name == "Closing Prices") browser()

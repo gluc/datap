@@ -5,15 +5,16 @@ VARIABLE_RESERVED_NAMES_CONST <- c( 'pipe',
                                     'pipefun',
                                     'context')
 
-JOINT_TYPES_AGGREGATORS <- c('pipe', 'junction')
+JOINT_TYPES_FLOW <- c('pipe', 'junction')
 JOINT_TYPES_JOINTS <- c( 'processor', 'factory')
 JOINT_TYPES_QA <- c('warning', 'error')
+JOINT_TYPES_STRUCTURE <- c('structure', 'module')
+
+JOINT_TYPES <- c('tap', JOINT_TYPES_FLOW, JOINT_TYPES_JOINTS, JOINT_TYPES_QA, JOINT_TYPES_STRUCTURE)
+JOINT_TYPES_FUN <- c(JOINT_TYPES_FLOW, JOINT_TYPES_JOINTS, JOINT_TYPES_QA)
 
 
-JOINT_TYPES_NON_TAP <- c(JOINT_TYPES_AGGREGATORS, JOINT_TYPES_JOINTS, JOINT_TYPES_QA)
-JOINT_TYPES <- c('tap', JOINT_TYPES_NON_TAP)
-
-
+ELEMENTS <- c("attributes", "variables", "parameters", "function", "arguments")
 
 #' Loads a meta definition.
 #'
@@ -30,47 +31,30 @@ Load <- function(con) {
   yamlString <- paste0(readLines(con), collapse = "\n")
   lol <- yaml.load(yamlString)
 
-  tree <- CreateTree(lol)
+  tree <- CreateRawTree(lol)
 
   CheckSyntaxRawTree(tree)
 
   SimplifyTree(tree)
 
-  tree$name <- "context"
+  ParseTree(tree)
 
-  class(tree) <- c("context", class(tree))
-  tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
-
-  tree$Do(function(node) node$variables <- ParseVariables(node$parent, node$variables))
-  tree$Do(function(node) node$parameters <- ParseVariables(node, node$parameters), filterFun = function(node) identical(node$type, "tap"))
-  tree$Do(function(node) node$parameters <- GetUpstreamParameters(node))
-
-  tree$Do(function(node) node$arguments <- ParseVariables(node, node$arguments))
-  tree$Do(fun = function(node) node$dynamicVariables <- GetDynamicVariables(node))
-  tree$Do(fun = function(node) node$fun <- ParseFun(node),
-          traversal = "post-order",
-          filterFun = function(node) !is.null(node$type) && node$type %in% JOINT_TYPES_NON_TAP)
-
-  tree$Do(fun = function(node) node$tap <- ParseTapFun(node),
-          filterFun = function(node) identical(node$type, "tap"))
-
-  tree$TapNames <- function() names(tree$children)
-  #return
+  #CheckReferences(tree)
   return (tree)
 }
 
 
 #' @importFrom data.tree Node FromListSimple
 #' @export
-CreateTree <- function(lol) {
+CreateRawTree <- function(lol) {
 
   rawTree <- FromListSimple(lol, nameName = NULL)
 
   #only children of pipe and junction are true nodes
-  RemoveNodes(rawTree, "arguments", lol)
-  RemoveNodes(rawTree, "variables", lol)
-  RemoveNodes(rawTree, "parameters", lol)
-  RemoveNodes(rawTree, "attributes", lol)
+  ReplaceNodesWithLol(rawTree, "arguments", lol)
+  ReplaceNodesWithLol(rawTree, "variables", lol)
+  ReplaceNodesWithLol(rawTree, "parameters", lol)
+  ReplaceNodesWithLol(rawTree, "attributes", lol)
 
 
 
@@ -86,15 +70,16 @@ SimplifyTree <- function(tree) {
   tree$Prune(pruneFun = function(node) !identical(node$type, "module"))
 
   #prune branches without a tap ()
+  #really necessary?
   tree$Prune(pruneFun = function(node) {
     any(node$Get("type") == "tap", na.rm = TRUE) || any(node$Get("type", traversal = "ancestor") == "tap", na.rm = TRUE)
   })
 
-  tree$Do(function(node) node$arguments <- as.list(node$arguments), filterFun = function(x) !is.null(x$arguments))
-  #rawTree$Do(function(node) node$parameters <- as.list(node$parameters), filterFun = function(x) !is.null(x$parameters))
-
+  #set empty lists
+  tree$Do(function(node) node$arguments <- as.list(node$arguments),
+          filterFun = function(x) !is.null(x$arguments))
   tree$Do(function(tapNode) if (is.null(tapNode$parameters)) tapNode$parameters <- list(),
-             filterFun = function(node) identical(node$type, "tap"))
+          filterFun = function(node) identical(node$type, "tap"))
 
   #convert pipe sequence to children
   tree$Do(function(pipeNode) {
@@ -108,29 +93,34 @@ SimplifyTree <- function(tree) {
   },
   filterFun = function(node) identical(node$type, "pipe"))
 
-  tree$Do(function(junctionNode) {
-    rf <- function(node) {
-      if (!identical(node$type, "pipe") && !identical(node$type, "junction")) return (node)
-      lapply(node$children, function(child) rf(child)) %>% unlist %>% return
-    }
-    nodes <- rf(junctionNode)
-    if (any(duplicated(Get(nodes, "name")))) lapply(nodes, function(node) node$name <- node$path[-c(1:junctionNode$level)] %>% paste(., collapse="."))
-  },
-  filterFun = function(node) return (identical(node$type, "junction"))
-  )
+  if (FALSE) {
+    #remove pipes
 
+    #avoid duplicate names
+    tree$Do(function(junctionNode) {
+      rf <- function(node) {
+        if (!identical(node$type, "pipe") && !identical(node$type, "junction")) return (node)
+        lapply(node$children, function(child) rf(child)) %>% unlist %>% return
+      }
+      nodes <- rf(junctionNode)
+      if (any(duplicated(Get(nodes, "name")))) lapply(nodes, function(node) node$name <- node$path[-c(1:junctionNode$level)] %>% paste(., collapse="."))
+    },
+    filterFun = function(node) return (identical(node$type, "junction"))
+    )
 
-  tree$Do(function(pipeNode) {
-    child <- pipeNode$children[[1]]
-    pipeNode$RemoveChild(child$name)
-    pipeNode$parent$AddChildNode(child)
-    pipeNode$parent$RemoveChild(pipeNode$name)
-  },
-  filterFun = function(node) identical(node$type, "pipe"),
-  traversal = "post-order")
+    #remove pipes
+    tree$Do(function(pipeNode) {
+      child <- pipeNode$children[[1]]
+      pipeNode$RemoveChild(child$name)
+      pipeNode$parent$AddChildNode(child)
+      pipeNode$parent$RemoveChild(pipeNode$name)
+    },
+    filterFun = function(node) identical(node$type, "pipe"),
+    traversal = "post-order")
+  }
 }
 
-RemoveNodes <- function(rawTree, name, lol) {
+ReplaceNodesWithLol <- function(rawTree, name, lol) {
   rawTree$Do(function(node) {
     for(n in node$path[-1]) lol <- lol[[n]]
     parent <- node$parent
@@ -142,6 +132,33 @@ RemoveNodes <- function(rawTree, name, lol) {
 
 
 
+ParseTree <- function(tree) {
+  tree$name <- "context"
+
+  class(tree) <- c("context", class(tree))
+  tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
+
+  #add dummy function to pipes
+  tree$Do(function(node) {
+    node$`function` <- 'identity'
+    node$arguments <- list(x = "@inflow")
+  }, filterFun = function(node) identical(node$type, "pipe"))
+
+  tree$Do(function(node) node$variables <- ParseVariables(node$parent, node$variables))
+  tree$Do(function(node) node$parameters <- ParseVariables(node, node$parameters), filterFun = function(node) identical(node$type, "tap"))
+  tree$Do(function(node) node$parameters <- GetUpstreamParameters(node))
+
+  tree$Do(function(node) node$arguments <- ParseVariables(node, node$arguments))
+  tree$Do(fun = function(node) node$dynamicVariables <- GetDynamicVariables(node))
+  tree$Do(fun = function(node) node$fun <- ParseFun(node),
+          traversal = "post-order",
+          filterFun = function(node) !is.null(node$type) && node$type %in% JOINT_TYPES_FUN)
+
+  tree$Do(fun = function(node) node$tap <- node$children[[1]]$fun,
+          filterFun = function(node) identical(node$type, "tap"))
+
+  tree$TapNames <- function() names(tree$children)
+}
 
 
 
@@ -196,7 +213,7 @@ ParseFun <- function(node) {
     print (node$name)
     #if (node$name == "Cache") browser()
     CallStep <- function() {
-      #if (node$name == "SMA") browser()
+      #if (node$name == "Yahoo") browser()
       #parse parameters
       parameterNames <- ls()
       myArgs <- lapply(parameterNames, function(x) get(x))
@@ -209,8 +226,8 @@ ParseFun <- function(node) {
 
       if ("@inflow" %in% node$dynamicVariables) {
         children <- lapply(node$children, function(child) {
-          childParameters <- GetChildParameters(node, child, myArgs, ellipsis)
-          do.call(child$fun, childParameters)
+          childArguments <- GetChildArguments(node, child, myArgs, ellipsis)
+          do.call(child$fun, childArguments)
         })
         if (node$count == 1) children <- children[[1]]
 
@@ -242,15 +259,9 @@ ParseFun <- function(node) {
 }
 
 
-#' Create the function on the tap
-ParseTapFun <- function(node) {
-  child <- node$children[[1]]
-  return (child$fun)
-}
-
-
-
-GetChildParameters <- function(node, child, myArgs, ellipsis) {
+# Get a list of arguments, matching the upstream function's
+# parameters.
+GetChildArguments <- function(node, child, myArgs, ellipsis) {
   if ("..." %in% names(formals(child$fun))) {
     childParameters <- c(ellipsis, myArgs[names(child$parameters)[names(child$parameters) != "..."]])
   } else {
@@ -314,8 +325,8 @@ ParseParameters <- function(node, funArgs, myArgs, ellipsis) {
   return (funArgs)
 }
 
-#' Finds the tap parameters that will be used on
-#' this node or on any of its children
+# Finds the tap parameters that will be used on
+# this joint or on any of its upstream joints
 GetUpstreamParameters <- function(node) {
   #if (node$name == "MATap") browser()
   parameters <- GetAttribute(node, "parameters", inheritFromAncestors = TRUE, nullAsNa = FALSE)

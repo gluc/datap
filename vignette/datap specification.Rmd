@@ -99,7 +99,9 @@ A [`>variables`](#variables) section is an *associative list*, called "variables
     n* $variableName: $value
 ```
 
-The names of *[special variable references](#special-variable-references)* cannot be used as variable name (namely: "inflow", "inflowfun", "context")
+The names of *[special variable references](#special-variable-references)* cannot be used as variable name (namely: "inflow", "inflowfun", "context").
+
+The *scope* of a variable is always upstream. A variable value can be overwritten in an upstream joint.
 
 Example:
 
@@ -111,7 +113,6 @@ Closing Prices:
     startDate: 2000-01-01
 ```
 
-You can overwrite a variable value in an upstream joint.
 
 ## *reference*
 
