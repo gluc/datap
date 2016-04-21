@@ -1,0 +1,497 @@
+---
+title: "datap Specification"
+author: "Christoph Glur"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    toc: yes
+    toc_depth: 5
+  pdf_document:
+    toc: yes
+    toc_depth: '5'
+vignette: |
+  %\VignetteIndexEntry{datap Specification} %\VignetteEngine{knitr::rmarkdown} \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+> “If I could do it all again, I'd be a plumber.”
+>
+> -- <cite>Albert Einstein</cite>
+
+# Preliminary Remarks
+
+## Document Version
+
+- datap version: 0.1
+- Document Version: 0.1
+- Date: 2016-04-21
+- License:
+
+## Scope
+
+datap is a lightweight YAML format to define configurable, modular data processes. datap configurations can be used to acquire, pre-process, quality-assure, and merge data.
+
+datap is language neutral.
+
+In practice, each datap setup will consist of the following elements:
+
+1. One or more datap configuration files.
+2. One or more code libraries in the programming language of your choice. These libraries do the actual units of work.
+3. A datap interpreter, in the programming language of your choice. The interpreter parses the configuration file, and maps processing steps defined in (1) to actual library functions available in (2).
+
+This document is about the first part only: the datap configuration files.
+
+## Syntax Description Conventions
+
+In this document, the datap syntax is described using the following conventions:
+
+* `>`: a reference to a specific datap element
+* `[]`: optional elements
+* `$`: replace the following string with an appropriate name
+* `n*`: repeat the element n times
+* `|`: or
+
+# datap Syntax
+
+## *context*
+
+A datap [`>context`](#context) is defined in a single YAML document. A YAML document can contain at most one [`>context`](#context).
+
+A [`>context`](#context) spans a tree whose nodes are each one the following types of *joints*:
+
+* [`>tap`](#tap): entry point to data, can have parameters
+* [`>structure`](#structure): organise taps into hierarchies
+* flow control:
+	* [`>pipe`](#pipe): combine joints serially
+	* [`>junction`](#junction): combine multiple joints into one
+* data processing:
+	* [`>processor`](#processor): unit of work (data acquisition and pre-processing)
+	* [`>factory`](#factory): functional programming construct
+* error handling:
+	* [`>warning`](#warning)
+	* [`>error`](#error)
+
+Each joint consists of the following:
+
+1. a *type*
+2. named elements, namely
+    + [`>attributes`](#attributes)
+    + [`>variables`](#variables)
+    + [`>parameters`](#parameters)
+    + [`>function`](#function)
+    + [`>arguments`](#arguments)
+3. other, nested *joints*
+
+The flow of data is from leafs towards the root, and ends at a [`>tap`](#tap). Thus, each sub-tree below a [`>tap`](#tap) defines the processing steps of a [`>tap`](#tap). In line with data flow, we use the term *upstream* to denote joints that are in a sub-tree relative to a given joint. We use *downstream* to denote joints that are in the joint's ancestry.
+
+## *variables*
+
+Variables can be defined in a [`>structure`](#structure), [`>tap`](#tap), [`>pipe`](#pipe), and [`>junction`](#junction) in a given [`>context`](#context).
+
+A [`>variables`](#variables) section is an *associative list*, called "variables". Each variable is an entry in that list, with the *key* defining the variable *name*, and the *value* defining the variable *value*:
+
+```
+>structure|>tap|>pipe|>junction
+  variables:
+    n* $variableName: $value
+```
+
+The names of *[special variable references](#special-variable-references)* cannot be used as variable name (namely: "inflow", "inflowfun", "context")
+
+Example:
+
+```{YAML}
+Closing Prices:
+  type: structure
+  variables:
+    series: Close
+    startDate: 2000-01-01
+```
+
+You can overwrite a variable value in an upstream joint.
+
+## *reference*
+
+### *variable* and *parameter* reference
+
+A [`>reference`](#reference) has an *@* prefix, and refers to a downstream *variable*, a *parameter*, a *special variable reference*, or a *macro*.
+
+You can use a [`>reference`](#reference) in a *parameter*, an *argument*, or in another *variable*.
+
+```
+>parameters|>arguments|>variables:
+  $name: @$variableReferenceName
+```
+Or, for unnamed [`>arguments`](#arguments):
+```
+>arguments:
+  - @$variableReferenceName
+```
+
+For example:
+
+```{YAML}
+AAPL:
+  type: tap
+  variables:
+    #variable reference
+    #maxNaRatioDefault must be defined upstream
+    maxNaRatio: '@maxNaRatioDefault'
+    yahooSymbol: AAPL
+    quandlCode: 'YAHOO/AAPL'
+  pipe: *QYPipe
+```
+
+### special variable reference
+
+The following variable references can be used without defining the variables downstream:
+
+* [`@inflow`](#@inflow)
+* [`@inflowfun`](@inflowfun)
+* [`@context`](#context)
+
+They are *reserved words* and cannot be used as variable names.
+
+#### *`@inflow`*
+
+The *`@inflow`* reference refers to the output of the upstream joints. For a *pipe*, there is a single upstream joint. For a *junction*, there can be more than one. In that case, the *`@inflow`* refers to the set of upstream outputs.
+
+Example:
+
+```{YAML}
+MinLength:
+  type: error
+  function: MinLength
+  arguments:
+    timeseries: '@inflow'
+    minLength: 10
+```
+
+#### *`@inflowfun`*
+
+The *`@inflowfun`* reference refers to the upstream joints. This is particularly useful in connection with *[factory](#factory)* joints.
+
+Example:
+
+```{YAML}
+Cache:
+  type: factory
+  function: Cache
+  arguments:
+    f: '@inflowfun'
+    timeout: 3600
+```
+
+#### *`@context`*
+
+The *`@context`* reference refers to its surrounding [`>context`](#context).
+
+It is useful to source data from within a [`>context`](#context), and to re-use it as an input into another [`>tap`](#tap).
+
+For example:
+
+```{YAML}
+Tap:
+  type: processor
+  function: Tap
+  arguments:
+    context: '@context'
+    tapPath: 'Closing Prices/Indices/SPX'
+```
+
+### Macro references
+
+A *macro* is a custom function that is interpreted by the *datap interpreter*, and whose return value is substituted into the macro reference dynamically at call-time of the [`>tap`](#tap).
+
+```
+@$macroName(n* $parameterName[,])
+```
+
+For example, the datapR interpreter provides a macro *Today*, taking no arguments. Here, it is used to make sure that the *default argument* for the *endDate* parameter of the *Ones* [`>tap`](#tap) is set to today, dynamically at call-time of the [`>tap`](#tap):
+
+```{YAML}
+Ones:
+  type: tap
+  parameters:
+    startDate: 2000-01-01
+    endDate: '@Today()'
+```
+
+## *attributes*
+
+Attributes can contain information and/or meta data that is not part of the datap processing. For example, you can store a long name, description, etc.
+The datap interpreter may then provide additional functionality, e.g. to find a [`>tap`](#tap) by attribute.
+
+```
+>pipe|>junction|>processor|>factory|>warning|>error|>structure
+  n* $attributeName: $value
+```
+
+> Consequentially, attributes are any key value pair for which the key name is not "parameters" or "variables". Also, an attribute cannot be a named associative list, otherwise it would be interpreted as a structure.
+
+## Joints
+
+Joints are the building blocks of any datap configuration, as explained in the *[Context](#context)* section.
+
+### *structure*
+
+[`>structure`](#structure) joints fulfil two purposes:
+
+* they define a hierarchy of other joints, especially [`>tap`](#tap)
+* they provide a scope to [`>variables`](#variables)
+
+In terms of data processing, structures are of no relevance.
+
+```{r, echo=FALSE, comment=""}
+library(datapR)
+s <- GetSyntaxDefinition()
+print(s$structure)
+```
+
+
+> Consequentially:
+>
+> * a structure may never be upstream from a [`>tap`](#tap)
+> * a structure has no other recognizable type declaration than being a named associative list. Thus, any named associative list inside a structure is itself a structure.
+> * a pipe may be defined directly on a structure, without a tap. Such a pipe will not be accessible through the context, and its only purpose is to define a re-usable
+> module
+
+### *tap*
+
+A [`>tap`](#tap) defines an entry point to specific data, within a context.
+
+>  Conceptually, you can think of a tap as a public function: when you open a tap (think "call the function"), data pours out (think: "data is returned as an output/return value").
+
+
+```{r, echo=FALSE, comment=""}
+print(s$tap)
+```
+
+
+> There are only [`>structure`](#structure) joints downstream from a tap.
+> There are no other [`>tap`](#tap) joints upstream from a tap.
+
+#### *parameters*
+
+A [`>parameter`](#parameter) allows a user to provide an argument when calling a [`>tap`](#tap).
+
+A [`>tap`](#tap) may have 0 to n parameters.
+
+Parameters may have *default arguments*.
+
+```
+>tap
+  parameters:
+    n* $parameterName: [$defaultArgument]
+```
+
+For example:
+
+```{YAML}
+AAPL: #tap name
+  type: tap
+  attributes:
+    description: Apple Inc. Stock
+    used by: chris
+  parameters:
+    startDate: 2000-01-01
+    endDate: @Today()
+    includeWeekends:
+  #upstream:
+  pipe: *Quandl
+```
+
+### *processor*
+
+A [`>processor`](#processor) defines a unit of work, such as data acquisition and pre-processing.
+
+```{r, echo=FALSE, comment=""}
+print(s$tap)
+```
+
+#### *function*
+
+A datap [`>function`](#function) is a directive to the datap interpreter how a [`>processor`](#processor), [`>error`](#error), or [`>warning`](#warning) is mapped to an actual function in the actual code library.
+
+```
+>processor|>error|>warning
+  function: $functionName
+```
+
+> Without an interpreter and a code library, the functionName has no semantic. It is just a name!
+
+#### *arguments*
+
+The [`>arguments`](#arguments) section defines the arguments that are passed to [`>function`].
+
+The arguments can be *named* or *unnamed*:
+
+```
+>processor|>error|>warning
+  arguments:
+    n* - $argument | n* $parameterName: $argument
+```
+
+Example with named arguments:
+
+```{YAML}
+DownloadQuandl:
+  type: processor
+  function: Quandl::Quandl
+  arguments:
+    code: '@quandlCode'
+    type: xts
+```
+
+Example with unnamed arguments:
+
+```{YAML}
+DownloadQuandl:
+  type: processor
+  function: Quandl::Quandl
+  arguments:
+    - '@quandlCode'
+    - xts
+```
+
+### *error* and *warning*
+
+[`>error`](#error) and [`>warning`](#warning) joints allow testing the results of the upstream [`>processor`](#processor) joint.
+
+[`>error`](#error) and [`>warning`](#warning) joints are pass-through: the downstream @inflow and @inflowfun variable references the joint's upstream joint.
+
+An [`>error`](#error) condition is a directive to the interpreter to stop execution and display an error message.
+A [`>warning`](#warning) condition is a directive to continue execution, and display a warning message.
+
+```{r, echo=FALSE, comment=""}
+print(s$error)
+```
+
+```{r, echo=FALSE, comment=""}
+print(s$warning)
+```
+
+
+Example:
+
+```{YAML}
+MinLength:
+  type: error
+  function: MinLength
+  arguments:
+    timeseries: '@inflow'
+    minLength: 10
+```
+
+
+### *factory*
+
+[`>factory`](#factory) adds functional programming elements to datap.
+
+A [`>factory`](#factory) is similar to a [`>processor`](#processor). The difference is that:
+
+1. a factory's [`>function`](#function) is executed only once, at [`>context`](#context) **creation time** (and not at [`>tap`](#tap) **call time**)
+2. the result of the [`>function`](#function) is expected to be itself a [`>function`](#function). That [`>function`](#function) will then be invoked at [`>tap`](#tap) call time.
+
+```{r, echo=FALSE, comment=""}
+print(s$factory)
+```
+
+Example:
+
+```{YAML}
+Cache:
+  type: factory
+  function: Cache
+  arguments:
+    f: '@inflowfun'
+    timeout: 3600
+```
+
+> Interpretation: The *function* of the upstream joint is passed into the Cache function as its *f* argument. *Cache* is expected to be a function factory that returns, as
+> an output a memoised version of @inflowfun.
+
+
+### *pipe*
+
+A [`>pipe`](#pipe) joint lets you arrange a number of upstream joints sequentially.
+
+```{r, echo=FALSE, comment=""}
+print(s$pipe)
+```
+
+
+For example, the following [`>pipe`](#pipe) first checks if the number of NAs in a series is below an inacceptable threshold (*NA Ratio*), then it backfills missing values (*Fill NAs*):
+
+```{YAML}
+NA handling: &NaHandling
+  type: pipe
+  Fill NAs:
+    type: processor
+    function: zoo::na.locf
+    arguments:
+      object: '@inflow'
+  NA Ratio:
+    type: warning
+    function: NaRatio
+    arguments:
+      timeseries: '@inflow'
+      variable: '@series'
+      maxRatio: '@maxNaRatio'
+```
+
+### *junction*
+
+A [`>junction`](#junction) merges multiple upstream joints into a single stream.
+
+Unlike the [`>pipe`](#pipe), the [`>junction`](#junction) has a [`>function`](#function), which is a directive how to merge the upstream joints.
+
+```{r, echo=FALSE, comment=""}
+print(s$junction)
+```
+
+
+### *module*
+
+Modularization is achieved with YAML *anchors* and *references*. Modules that are not used in a tap can be put in a module section.
+
+```{r, echo=FALSE, comment=""}
+print(s$module)
+```
+
+
+For example:
+
+```
+modules:
+  type: module
+  #this module has no tap
+  #it only serves as anchors for other taps
+  NA handling: &NaHandling
+    type: pipe
+    Fill NAs:
+      type: processor
+      function: zoo::na.locf
+      arguments:
+        object: '@inflow'
+    NA Ratio:
+      type: warning
+      function: NaRatio
+      arguments:
+        timeseries: '@inflow'
+        variable: '@series'
+        maxRatio: '@maxNaRatio'
+
+```
+
+# Example
+
+```{r, echo = FALSE, comment = ""}
+filePath <- system.file("extdata", "context1.yaml", package="datapR")
+yamlString <- paste0(readLines(filePath), collapse = "\n")
+cat(yamlString)
+
+```
