@@ -75,45 +75,26 @@ SimplifyTree <- function(tree) {
           filterFun = function(node) identical(node$type, "tap"))
 
 
-  tree$Do(function(node) node$rank <- node$parent$name,
-          filterFun = function(x) identical(x$parent$type, "pipe") || identical(x$parent$type, "junction"))
-
-  #convert pipe sequence to children
-  tree$Do(function(pipeNode) {
-    parent <- pipeNode$children[[1]]
-    for (child in pipeNode$children[-1]) {
-      pipeNode$RemoveChild(child$name)
-      parent$AddChildNode(child)
-      parent <- child
-    }
-
-  },
-  filterFun = function(node) identical(node$type, "pipe"))
-
   if (FALSE) {
-    #remove pipes
 
-    #avoid duplicate names
-    tree$Do(function(junctionNode) {
-      rf <- function(node) {
-        if (!identical(node$type, "pipe") && !identical(node$type, "junction")) return (node)
-        lapply(node$children, function(child) rf(child)) %>% unlist %>% return
-      }
-      nodes <- rf(junctionNode)
-      if (any(duplicated(Get(nodes, "name")))) lapply(nodes, function(node) node$name <- node$path[-c(1:junctionNode$level)] %>% paste(., collapse="."))
-    },
-    filterFun = function(node) return (identical(node$type, "junction"))
-    )
+    tree$Do(function(node) node$rank <- node$parent$name,
+            filterFun = function(x) identical(x$parent$type, "pipe") || identical(x$parent$type, "junction"))
 
-    #remove pipes
+    #convert pipe sequence to children
     tree$Do(function(pipeNode) {
-      child <- pipeNode$children[[1]]
-      pipeNode$RemoveChild(child$name)
-      pipeNode$parent$AddChildNode(child)
-      pipeNode$parent$RemoveChild(pipeNode$name)
+      parent <- pipeNode$children[[1]]
+      for (child in pipeNode$children[-1]) {
+        pipeNode$RemoveChild(child$name)
+        parent$AddChildNode(child)
+        parent <- child
+      }
+
     },
-    filterFun = function(node) identical(node$type, "pipe"),
-    traversal = "post-order")
+    filterFun = function(node) identical(node$type, "pipe"))
+
+    #remove pipes
+
+
   }
 }
 
@@ -148,9 +129,11 @@ ParseTree <- function(tree) {
 
   tree$Do(function(node) node$arguments <- ParseVariables(node, node$arguments))
   tree$Do(fun = function(node) node$dynamicVariables <- GetDynamicVariables(node))
-  tree$Do(fun = function(node) node$fun <- ParseFun(node),
-          traversal = "post-order",
-          filterFun = function(node) !is.null(node$type) && node$type %in% JOINT_TYPES_FUN)
+
+  Traverse(tree,
+           filterFun = function(node) !is.null(node$type) && node$type %in% JOINT_TYPES_FUN) -> traversal
+  traversal %>% rev %>%
+  Do(function(joint) joint$fun <- ParseFun(joint))
 
   tree$Do(fun = function(node) node$tap <- node$children[[1]]$fun,
           filterFun = function(node) identical(node$type, "tap"))
@@ -214,7 +197,8 @@ ParseFun <- function(node) {
     #print (node$name)
     #if (node$name == "Cache") browser()
     CallStep <- function() {
-      #if (node$name == "Yahoo") browser()
+      #if (node$name == "QYPipe") browser()
+      print (node$name)
       #parse parameters
       parameterNames <- ls()
       myArgs <- lapply(parameterNames, function(x) get(x))
@@ -226,17 +210,21 @@ ParseFun <- function(node) {
       funArgs <- ParseParameters(node, funArgs, myArgs, ellipsis)
 
       if ("@inflow" %in% node$dynamicVariables) {
-        children <- lapply(node$children, function(child) {
+        upstream <- GetUpstreamJoint(node)
+        if (is.null(upstream)) browser()
+        children <- lapply(upstream, function(child) {
           childArguments <- GetChildArguments(node, child, myArgs, ellipsis)
           do.call(child$fun, childArguments)
         })
-        if (node$count == 1) children <- children[[1]]
+        if (length(upstream) == 1) children <- children[[1]]
 
         funArgs[[which(funArgs == "@inflow")]] <- children
       }
       if ("@inflowfun" %in% node$dynamicVariables) {
-        children <- lapply(node$children, function(child) child$fun)
-        if (node$count == 1) children <- children[[1]]
+        upstream <- GetUpstreamJoint(node)
+        if (is.null(upstream)) browser()
+        children <- lapply(upstream, function(child) child$fun)
+        if (length(upstream) == 1) children <- children[[1]]
         funArgs[[which(funArgs == "@inflowfun")]] <- children
       }
       res <- do.call.intrnl(funNme, funArgs)
@@ -257,6 +245,19 @@ ParseFun <- function(node) {
 
     return (fun)
 
+}
+
+
+GetUpstreamJoint <- function(joint) {
+  if (is.null(joint$type) || !joint$type %in% JOINT_TYPES_FUN) return (joint$children)
+  if (identical(joint$type, "junction")) return (joint$children)
+  if (identical(joint$type, "pipe")) return (joint$children[1])
+  else {
+    if (joint$position < joint$parent$count) return(joint$siblings[joint$position]) #next sibling
+    if (identical (joint$parent$type, "tap")) return (NULL)
+    if (joint$parent$position < joint$parent$parent$count) return(joint$parent$siblings[joint$parent$position])
+    return (NULL)
+  }
 }
 
 
