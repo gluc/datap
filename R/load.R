@@ -197,7 +197,7 @@ ParseFun <- function(node) {
     #print (node$name)
     #if (node$name == "Cache") browser()
     CallStep <- function() {
-      #if (node$name == "QYPipe") browser()
+      #if (node$name == "MinLength") browser()
       print (node$name)
       #parse parameters
       parameterNames <- ls()
@@ -210,7 +210,7 @@ ParseFun <- function(node) {
       funArgs <- ParseParameters(node, funArgs, myArgs, ellipsis)
 
       if ("@inflow" %in% node$dynamicVariables) {
-        upstream <- GetUpstreamJoint(node)
+        upstream <- GetUpstreamJoints(node)
         if (is.null(upstream)) browser()
         children <- lapply(upstream, function(child) {
           childArguments <- GetChildArguments(node, child, myArgs, ellipsis)
@@ -221,7 +221,7 @@ ParseFun <- function(node) {
         funArgs[[which(funArgs == "@inflow")]] <- children
       }
       if ("@inflowfun" %in% node$dynamicVariables) {
-        upstream <- GetUpstreamJoint(node)
+        upstream <- GetUpstreamJoints(node)
         if (is.null(upstream)) browser()
         children <- lapply(upstream, function(child) child$fun)
         if (length(upstream) == 1) children <- children[[1]]
@@ -248,7 +248,7 @@ ParseFun <- function(node) {
 }
 
 
-GetUpstreamJoint <- function(joint) {
+GetUpstreamJoints <- function(joint) {
   if (is.null(joint$type) || !joint$type %in% JOINT_TYPES_FUN) return (joint$children)
   if (identical(joint$type, "junction")) return (joint$children)
   if (identical(joint$type, "pipe")) return (joint$children[1])
@@ -258,6 +258,11 @@ GetUpstreamJoint <- function(joint) {
     if (joint$parent$position < joint$parent$parent$count) return(joint$parent$siblings[joint$parent$position])
     return (NULL)
   }
+}
+
+
+GetUpstreamJoint <- function(joint) {
+  GetUpstreamJoints(joint)[[1]]
 }
 
 
@@ -333,7 +338,10 @@ GetUpstreamParameters <- function(node) {
   #if (node$name == "MATap") browser()
   parameters <- GetAttribute(node, "parameters", inheritFromAncestors = TRUE, nullAsNa = FALSE)
   if (length(parameters) == 0) return (list())
-  node$Get(function(x) parameters[paste0('@', names(parameters)) %in% x$arguments] %>% names) %>% unique %>% unlist -> prms
+  Traverse(node, traversal = GetUpstreamJoint) %>%
+  Get(function(x) parameters[paste0('@', names(parameters)) %in% x$arguments] %>% names) %>%
+    unique %>%
+    unlist -> prms
   res <- parameters[names(parameters) %in% prms]
   return (res)
 }
