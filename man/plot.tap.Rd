@@ -4,17 +4,22 @@
 \alias{plot.tap}
 \title{Plot a timeseries or a module}
 \usage{
-\method{plot}{tap}(x, ..., direction = c("climb", "descend"),
-  pruneFun = NULL, engine = "dot")
+\method{plot}{tap}(x, ..., pruneFun = NULL)
+}
+\arguments{
+\item{x}{the tap to plot}
+
+\item{...}{additional parameters to pass to the plot.Node method}
+
+\item{pruneFun}{a function to prune the plot. See \code{\link[data.tree]{Prune}}}
 }
 \description{
 Plot a timeseries or a module
 }
 \examples{
-filePath <- system.file("extdata", "sample_metadata.yaml", package="finPrice")
+filePath <- system.file("extdata", "context1.yaml", package="datapR")
 context <- Load(filePath)
-plot(context$SPX)
-plot(context$`NA Handling`)
+plot(context$FindNode('SPX'))
 
 }
 

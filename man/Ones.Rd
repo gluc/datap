@@ -7,9 +7,11 @@
 Ones(startDate = "1990-01-01", endDate = Sys.Date(), colname = "Close")
 }
 \arguments{
-\item{startDate}{the first date of the xts to be returned}
+\item{startDate}{the start date}
 
-\item{endDate}{the last date of the xts to be returned}
+\item{endDate}{the end date}
+
+\item{colname}{the name the series should get}
 }
 \description{
 Create a timeseries of 1

@@ -1,6 +1,9 @@
 
 #' Create a timeseries of 1
 #'
+#' @param startDate the start date
+#' @param endDate the end date
+#' @param colname the name the series should get
 #'
 #' @inheritParams ConstantReturn
 #' @export
@@ -71,8 +74,10 @@ ConstantReturn <- function(startDate = "1990-01-01",
 
 #' Generate an index in which each component has a fixed weight.
 #'
-#' @export
-FixedWeightIndex <- function(weights, children) {
+#' @param weights the weights of each component
+#' @param constituents the constituent historic prices
+#'
+FixedWeightIndex <- function(weights, constituents) {
 
 }
 
@@ -104,7 +109,7 @@ Regularize <- function(xts) {
 #' Combines two xts objects with similar data,
 #' giving preference to objects first in the list.
 #'
-#' @param ... xts objects to combine
+#' @param listofxts xts objects to combine
 #'
 #' @examples
 #' library(Quandl)
@@ -156,7 +161,12 @@ MinLength <- function(timeseries, minLength) {
 }
 
 
-#'@export
+#' Set the names to an object
+#'
+#' @param x the object on which to set the names
+#' @param names the names
+#'
+#' @export
 SetNames <- function(x, names) {
   names(x) <- names
   return (x)
@@ -164,17 +174,12 @@ SetNames <- function(x, names) {
 
 
 
-#'@export
-NaRatio <- function(timeseries, variable, maxRatio) {
-  naRatio <- length(which(is.na(timeseries[ , variable]))) / length(timeseries)
-  res <- naRatio <= maxRatio
-  text <- paste0("NA ratio: ", naRatio, " (max: ", maxRatio, ")")
-  res <- list(ok = res, msg = text)
-  return (res)
-}
 
-
-
+#' Cache / memoise a function for some time
+#'
+#' @param f the function to cache
+#' @param timeoutSec the number of seconds ot cache
+#'
 #' @importFrom memoise timeout memoise
 #' @export
 Cache <- function(f, timeoutSec) {

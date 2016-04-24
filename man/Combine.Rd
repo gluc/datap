@@ -8,7 +8,7 @@ giving preference to objects first in the list.}
 Combine(listofxts)
 }
 \arguments{
-\item{...}{xts objects to combine}
+\item{listofxts}{xts objects to combine}
 }
 \description{
 Combines two xts objects with similar data,

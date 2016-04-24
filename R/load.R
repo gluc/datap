@@ -1,20 +1,7 @@
 
 
 
-VARIABLE_RESERVED_NAMES_CONST <- c( 'inflow',
-                                    'inflowfun',
-                                    'context')
 
-JOINT_TYPES_FLOW <- c('pipe', 'junction')
-JOINT_TYPES_JOINTS <- c( 'processor', 'factory')
-JOINT_TYPES_QA <- c('warning', 'error')
-JOINT_TYPES_STRUCTURE <- c('structure', 'module')
-
-JOINT_TYPES <- c('tap', JOINT_TYPES_FLOW, JOINT_TYPES_JOINTS, JOINT_TYPES_QA, JOINT_TYPES_STRUCTURE)
-JOINT_TYPES_FUN <- c(JOINT_TYPES_FLOW, JOINT_TYPES_JOINTS, JOINT_TYPES_QA)
-
-
-ELEMENTS <- c("attributes", "variables", "parameters", "function", "arguments")
 
 #' Loads a meta definition.
 #'
@@ -26,6 +13,7 @@ ELEMENTS <- c("attributes", "variables", "parameters", "function", "arguments")
 #'
 #' @importFrom yaml yaml.load
 #' @importFrom data.tree FromListExplicit Do isNotRoot
+#' @importFrom utils capture.output
 #' @export
 Load <- function(con) {
   yamlString <- paste0(readLines(con), collapse = "\n")
@@ -33,19 +21,24 @@ Load <- function(con) {
 
   tree <- CreateRawTree(lol)
 
-  CheckSyntaxRawTree(tree)
+  errors <- CheckSyntaxRawTree(tree)
+  if (errors$hasErrors) {
+    stop("Context contains syntax errors! Run CheckSyntax(con) to get an error report.")
+  }
 
   SimplifyTree(tree)
 
   ParseTree(tree)
 
-  CheckReferences(tree)
+  refErrors <- CheckReferencesTree(tree)
+  if (refErrors$hasErrors) {
+    stop("Context contains unresolved references! Run CheckReferences(con) to get an error report.")
+  }
   return (tree)
 }
 
 
 #' @importFrom data.tree Node FromListSimple
-#' @export
 CreateRawTree <- function(lol) {
 
   rawTree <- FromListSimple(lol, nameName = NULL)
@@ -80,6 +73,10 @@ SimplifyTree <- function(tree) {
           filterFun = function(x) !is.null(x$arguments))
   tree$Do(function(tapNode) if (is.null(tapNode$parameters)) tapNode$parameters <- list(),
           filterFun = function(node) identical(node$type, "tap"))
+
+
+  tree$Do(function(node) node$rank <- node$parent$name,
+          filterFun = function(x) identical(x$parent$type, "pipe") || identical(x$parent$type, "junction"))
 
   #convert pipe sequence to children
   tree$Do(function(pipeNode) {
@@ -134,6 +131,7 @@ ReplaceNodesWithLol <- function(rawTree, name, lol) {
 
 ParseTree <- function(tree) {
   tree$name <- "context"
+  tree$type <- "context"
 
   class(tree) <- c("context", class(tree))
   tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
@@ -163,8 +161,8 @@ ParseTree <- function(tree) {
 
 
 
-#' Finds static variables in arguments and replaces them
-#' with their values.
+# Finds static variables in arguments and replaces them
+# with their values.
 ParseVariables <- function(node, funArgs) {
   if (length(funArgs) == 0) return (funArgs)
   #parse variables (except @inflow, @inflowfun, etc)
@@ -193,9 +191,9 @@ IsMacro <- function(v) {
 }
 
 
-#' Get variables that are dynamic, such
-#' as @inflow, @inflowfun or @context. Assumes non-dynamic
-#' variables have already been parsed.
+# Get variables that are dynamic, such
+# as @inflow, @inflowfun or @context. Assumes non-dynamic
+# variables have already been parsed.
 GetDynamicVariables <- function(node) {
   funArgs <- node$arguments %>% unlist
   funArgs <- funArgs[substr(funArgs, 1, 1) == "@"]
@@ -211,8 +209,9 @@ ParseFun <- function(node) {
     funNme <- node$`function`
     funArgs <- node$arguments
     funArgsNms <- names(funArgs)
+    xprs <- parse(text = "list(...)") #required to avoid warning in CHECK
 
-    print (node$name)
+    #print (node$name)
     #if (node$name == "Cache") browser()
     CallStep <- function() {
       #if (node$name == "Yahoo") browser()
@@ -221,7 +220,7 @@ ParseFun <- function(node) {
       myArgs <- lapply(parameterNames, function(x) get(x))
       names(myArgs) <- parameterNames
 
-      if ("..." %in% names(formals())) ellipsis <- list(...)
+      if ("..." %in% names(formals())) ellipsis <- eval(xprs)
       else ellipsis <- list()
 
       funArgs <- ParseParameters(node, funArgs, myArgs, ellipsis)
@@ -248,7 +247,7 @@ ParseFun <- function(node) {
         }
         return (children)
       }
-      print(paste0("Processed ", node$name))
+      if (!node$type == "factory") print(paste0("Processed ", node$name))
       return (res)
     }
     CallStep <- SetFormals(CallStep, node)
@@ -296,15 +295,15 @@ SetFormals <- function(CallStep, node) {
 
 
 
-#' Replaces variables in funArgs that point to a tap parameter
-#' with the respective argument
-#'
-#' @param node the node
-#' @param funArgs the arguments of the processing step, i.e. the
-#' function to be called inside the node$fun
-#' @param myArgs the arguments of the node$fun (coming from the parameters
-#' declaration)
-#' @param ellipsis the ellipsis arguments
+# Replaces variables in funArgs that point to a tap parameter
+# with the respective argument
+#
+# @param node the node
+# @param funArgs the arguments of the processing step, i.e. the
+# function to be called inside the node$fun
+# @param myArgs the arguments of the node$fun (coming from the parameters
+# declaration)
+# @param ellipsis the ellipsis arguments
 ParseParameters <- function(node, funArgs, myArgs, ellipsis) {
 
   if (!is.null(myArgs)) {

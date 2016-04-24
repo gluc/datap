@@ -9,7 +9,8 @@ print.context <- function(x, ...) {
 }
 
 
-
+#' Alias for \code{Sys.Date()}
+#'
 #' @export
 Today <- function() Sys.Date()
 

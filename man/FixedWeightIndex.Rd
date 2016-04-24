@@ -4,7 +4,12 @@
 \alias{FixedWeightIndex}
 \title{Generate an index in which each component has a fixed weight.}
 \usage{
-FixedWeightIndex(weights, children)
+FixedWeightIndex(weights, constituents)
+}
+\arguments{
+\item{weights}{the weights of each component}
+
+\item{constituents}{the constituent historic prices}
 }
 \description{
 Generate an index in which each component has a fixed weight.

@@ -18,6 +18,8 @@ modules:
         maxRatio: '@maxNaRatio'
   Quandle and Yahoo download: &QYPipe
     type: pipe
+    variables:
+      doNA: TRUE
     attributes:
       description: |
         This defines a reusable process

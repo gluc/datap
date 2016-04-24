@@ -11,12 +11,18 @@ VignetteBuilder: knitr
 License: GPL (>= 2)
 LazyData: TRUE
 Imports:
+  utils,
   yaml,
   magrittr,
   data.tree,
   assertthat,
   xts,
-  zoo
+  zoo,
+  memoise,
+  timeDate
+Suggests:
+  knitr,
+  Quandl
 Depends:
     R (>= 3.0)
 RoxygenNote: 5.0.1
