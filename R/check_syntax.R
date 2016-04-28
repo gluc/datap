@@ -19,55 +19,22 @@ CheckSyntax <- function(con) {
 
   tree <- CheckSyntaxRawTree(tree)
 
-  if (!tree$hasErrors) {
-    tree$code <- "0000"
-    tree$message <- "No errors"
-  } else {
-    errNum <- Aggregate(tree, function(joint) {
-      if (joint$name == ".errors") return (joint$leafCount)
-      if (joint$isLeaf) return (0)
-      return (NULL)
-    }, aggFun = sum)
-    tree$message <- paste0(errNum, " errors!")
-  }
-  tree$type <- "context"
-  tree$name <- "context syntax error report"
-
-
   return (tree)
 
 }
 
-#' @export
-print.dataperrorreport <- function(x, ...) {
-  res <- ToDataFrameTree(x, "type", "code", "message",
-                         pruneFun = function(joint) joint$hasErrors)
 
-  res <- print(res, na.print = "", ...)
-  invisible (res)
-
-}
 
 
 CheckSyntaxRawTree <- function(rawTree) {
 
-  syntaxDef <- GetSyntaxDefinition()
   tree <- Clone(rawTree)
+  syntaxDef <- GetSyntaxDefinition()
+
   tree$Do(function(joint) CheckSyntaxJoint(joint, syntaxDef), filterFun = isNotRoot)
 
-  tree$Do(function(joint) joint$hasErrors <- Aggregate(joint,
-                                                       function(usj) {
-                                                         if (length(usj$hasErrors) > 0) return(usj$hasErrors)
-                                                         if (!usj$isLeaf) return (NULL)
-                                                         return (usj$parent$name == ".errors" || usj$parent$parent$name == ".errors")
+  PruneErrorReport(tree, "syntax")
 
-                                                       },
-                                                       aggFun = any),
-          traversal = "post-order")
-
-
-  tree$Prune(pruneFun = function(joint) joint$hasErrors)
-  class(tree) <- c("dataperrorreport", class(tree))
   return (tree)
 
 }
@@ -221,25 +188,6 @@ GetSyntaxDefinition <- function(type = NULL) {
 
 
 
-AssertSyntax <- function(condition, joint, errorSection, errorSubsection, errorCode, ...) {
-  if (!condition) {
-    msg <- list(...)
-    msg <- paste0(msg, collapse = "")
-    if (!".errors" %in% names(joint$children)) joint$AddChild(".errors")
-    err <- joint$`.errors`
-    if (nchar(errorSection) > 0) {
-      if (!errorSection %in% names(err$children)) err$AddChild(errorSection)
-      err <- err[[errorSection]]
-    }
-    if (nchar(errorSubsection) > 0) {
-      if (!errorSubsection %in% names(err$children)) err$AddChild(errorSubsection)
-      err <- err[[errorSubsection]]
-    }
-    err$code <- errorCode
-    err$message <- msg
-  }
-  return (condition)
-}
 
 
 NonErrorCount <- function(joint) {
@@ -249,6 +197,8 @@ NonErrorCount <- function(joint) {
 }
 
 CheckSyntaxJoint <- function(joint, syntaxDefinition) {
+  if(!CheckSyntaxType(joint)) return()
+
   mySyn <- syntaxDefinition[[joint$type]]
   CheckSyntaxChildCount(joint, mySyn$minChildren, mySyn$maxChildren)
 
@@ -263,20 +213,34 @@ CheckSyntaxJoint <- function(joint, syntaxDefinition) {
 
 }
 
+
+CheckSyntaxType <- function(joint) {
+  AssertSyntax(length(joint$type) > 0,
+               joint,
+               "node type",
+               "not set",
+               NULL,
+               "2000",
+               "Joint has no type.")
+}
+
+
 CheckSyntaxChildCount <- function(joint, minChildren, maxChildren) {
   AssertSyntax(NonErrorCount(joint) >= minChildren,
                joint,
                "upstream",
                "mincount",
+               NULL,
                "1000",
-               joint$type, " '", joint$name, "' must have at least", minChildren, "upstream joints.")
+               joint$type, " '", joint$name, "' must have at least ", minChildren, " upstream joints.")
 
   AssertSyntax(NonErrorCount(joint) <= maxChildren,
                joint,
                "upstream",
                "maxcount",
+               NULL,
                "1001",
-               joint$type, " '", joint$name, "' cannot have more than ", maxChildren, "upstream joints.")
+               joint$type, " '", joint$name, "' cannot have more than ", maxChildren, " upstream joints.")
 }
 
 
@@ -288,6 +252,7 @@ CheckSyntaxAllowedParents <- function(joint, allowedParents, mustHaveParent) {
                joint,
                "downstream",
                "",
+               NULL,
                "1200",
                joint$type, " '", joint$name, "' requires a downstream joint.")
 
@@ -295,6 +260,7 @@ CheckSyntaxAllowedParents <- function(joint, allowedParents, mustHaveParent) {
                joint,
                "downstream",
                "",
+               NULL,
                "1201",
                "Downstream of ", joint$type, " '", joint$name, "' must be any of ", paste(allowedParents, collapse = ", "), ".")
 
@@ -307,6 +273,7 @@ CheckSyntaxAllowedElements <- function(joint, allowedElements) {
                joint,
                "allowedElements",
                element,
+               NULL,
                "1300",
                "Only ", paste0(allowedElements, collapse = ", "), " allowed in ", joint$type, " '", joint$name, "'")
   }
@@ -318,6 +285,7 @@ CheckSyntaxRequiredElements <- function(joint, requiredElements) {
                joint,
                "requiredElements",
                requiredElement,
+               NULL,
                "1400",
                joint$type, " '", joint$name, "' must have element ", requiredElement, ".")
   }
@@ -339,6 +307,7 @@ CheckSyntaxParameters <- function(joint) {
                  joint,
                  "parameters",
                  "",
+                 NULL,
                  "1600",
                  "Parameters must be a list.")
     if (!cond) return()
@@ -346,6 +315,7 @@ CheckSyntaxParameters <- function(joint) {
                  joint,
                  "parameters",
                  "",
+                 NULL,
                  "1601",
                  "Parameters must be an associative list.")
 
@@ -362,6 +332,7 @@ CheckSyntaxVariables <- function(joint) {
                  joint,
                  "variables",
                  "",
+                 NULL,
                  "1700",
                  "Variables must be a list.")
 
@@ -371,6 +342,7 @@ CheckSyntaxVariables <- function(joint) {
                  joint,
                  "variables",
                  "",
+                 NULL,
                  "1701",
                  "Variables must be an associative list.")
 
@@ -386,6 +358,7 @@ CheckSyntaxFunction <- function(joint) {
                  joint,
                  "function",
                  "",
+                 NULL,
                  "1800",
                  "Function must be a character.")
   }
@@ -400,6 +373,7 @@ CheckSyntaxArguments <- function(joint) {
                          joint,
                          "arguments",
                          "",
+                         NULL,
                          "1900",
                          "Arguments must be a list.")
 

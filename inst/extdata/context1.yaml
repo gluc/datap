@@ -118,7 +118,7 @@ Closing Prices:
           arguments:
             - '@inflow'
             - '@dteRange'
-        QYPipe: *QYPipe
+        pipe: *QYPipe
   Single Stocks:
     type: structure
     AAPL:

@@ -26,7 +26,12 @@ Load <- function(con) {
     stop("Context contains syntax errors! Run CheckSyntax(con) to get an error report.")
   }
 
-  SimplifyTree(tree)
+  ResolveFlow(tree)
+
+  aggregationErrors <- CheckAggregationTree(tree)
+  if (aggregationErrors$hasErrors) {
+    stop("Context contains aggregation errors! Run CheckAggregation(con) to get an error report.")
+  }
 
   ParseTree(tree)
 
@@ -57,7 +62,7 @@ CreateRawTree <- function(lol) {
 
 
 
-SimplifyTree <- function(tree) {
+ResolveFlow <- function(tree) {
 
   #prune modules
   tree$Prune(pruneFun = function(node) !identical(node$type, "module"))
@@ -74,28 +79,18 @@ SimplifyTree <- function(tree) {
   tree$Do(function(tapNode) if (is.null(tapNode$parameters)) tapNode$parameters <- list(),
           filterFun = function(node) identical(node$type, "tap"))
 
-
-  if (FALSE) {
-
-    tree$Do(function(node) node$rank <- node$parent$name,
-            filterFun = function(x) identical(x$parent$type, "pipe") || identical(x$parent$type, "junction"))
-
-    #convert pipe sequence to children
-    tree$Do(function(pipeNode) {
-      parent <- pipeNode$children[[1]]
-      for (child in pipeNode$children[-1]) {
-        pipeNode$RemoveChild(child$name)
-        parent$AddChildNode(child)
-        parent <- child
-      }
-
-    },
-    filterFun = function(node) identical(node$type, "pipe"))
-
-    #remove pipes
+  tree$Do(function(node) node$rank <- node$parent$name,
+          filterFun = function(x) identical(x$parent$type, "pipe") ||
+                                  identical(x$parent$type, "junction") ||
+                                  identical(x$parent$type, "tap")
+          )
 
 
-  }
+  tree$Do(function(node) node$downstream <- GetDownstreamPath(node), #Use relative path instead!
+          filterFun = function(node) !is.null(node$type) && node$type %in% JOINT_TYPES_FUN)
+
+
+
 }
 
 ReplaceNodesWithLol <- function(rawTree, name, lol) {
@@ -116,6 +111,9 @@ ParseTree <- function(tree) {
 
   class(tree) <- c("context", class(tree))
   tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
+
+  #set downstream to single string
+  tree$Do(function(node) node$downstream <- node$downstream[[1]], filterFun = function(joint) is.list(joint$downstream))
 
   #add dummy function to pipes
   tree$Do(function(node) {
@@ -263,6 +261,49 @@ GetUpstreamJoints <- function(joint) {
 
 GetUpstreamJoint <- function(joint) {
   GetUpstreamJoints(joint)[[1]]
+}
+
+
+GetDownstreamPath <- function(joint) {
+  type <- joint$parent$type
+  if (identical(type, "tap")) return ("..")
+  if (is.null(type) || !type %in% JOINT_TYPES_FUN) return (NULL)
+  if (identical(type, "junction")) return ("..")
+  if (identical(type, "pipe")) {
+    if (joint$position == 1) return ("..")
+    ds <- joint$parent$children[[joint$position - 1]]
+    #if (identical(ds$type, "junction")) stop(paste0("No element allowed after junction ", ds$name, "!"))
+    if (ds$type %in% c("junction", "pipe")) {
+      src <- GetSourcesPath(ds, path = "..")
+      if (length(src) > 1) {
+        # stop(paste0("Cannot connect ", joint$name, " upstream. Joint ", joint$Navigate(src), " has more than one source."))
+      }
+      pth <- src
+    } else pth <- paste("..", ds$name, sep = "/")
+    return (pth)
+  }
+  else stop(paste0("Unexpected joint parent type ", type, " of joint ", joint$name))
+}
+
+
+GetSourcesPath <- function(joint, path = ".") {
+  if (identical(joint$type, "junction")) {
+    usjs <- joint$children
+    path <- paste0(path, "/", joint$name)
+  } else if (identical(joint$type, "pipe")) {
+    usjs <- joint$children[joint$count]
+    path <- paste0(path, "/", joint$name)
+  } else if (identical(joint$parent$type, "pipe")) {
+    usjs <- joint$parent$children[joint$parent$count]
+    #path <- paste0(path, "/", joint$parent$name, "/", joint$name)
+    path <- paste0(path, "/", joint$name)
+  } else {
+    path <- paste0(path, "/", joint$name)
+    return (path)
+  }
+  if (length(usjs) == 1 && identical(usjs[[1]], joint)) return (path)
+  res <- sapply(usjs, function(j) GetSourcesPath(j, path))
+  return (res)
 }
 
 

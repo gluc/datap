@@ -21,25 +21,16 @@ CheckReferences <- function(con) {
     stop("Context contains syntax errors! Run CheckSyntax(con) to get an error report.")
   }
 
-  SimplifyTree(tree)
+  ResolveFlow(tree)
+
+  aggregationErrors <- CheckAggregationTree(tree)
+  if (aggregationErrors$hasErrors) {
+    stop("Context contains aggregation errors! Run CheckAggregation(con) to get an error report.")
+  }
 
   ParseTree(tree)
 
   tree <- CheckReferencesTree(tree)
-  if (!tree$hasErrors) {
-    tree$code <- "0000"
-    tree$message <- "No errors"
-  } else {
-    errNum <- Aggregate(tree, function(joint) {
-      if (joint$name == ".errors") return (joint$leafCount)
-      if (joint$isLeaf) return (0)
-      return (NULL)
-    }, aggFun = sum)
-    tree$message <- paste0(errNum, "reference errors!")
-  }
-
-  tree$name <- "context reference error report"
-
 
   return (tree)
 
@@ -50,20 +41,7 @@ CheckReferences <- function(con) {
 CheckReferencesTree <- function(tree) {
   tree <- Clone(tree)
   tree$Do(CheckReferencesJoint, filterFun = isNotRoot)
-
-  tree$Do(function(joint) joint$hasErrors <- Aggregate(joint,
-                                                       function(usj) {
-                                                         if (length(usj$hasErrors) > 0) return(usj$hasErrors)
-                                                         if (!usj$isLeaf) return (NULL)
-                                                         return (usj$parent$name == ".errors" || usj$parent$parent$name == ".errors")
-
-                                                       },
-                                                       aggFun = any),
-          traversal = "post-order")
-
-
-  tree$Prune(pruneFun = function(joint) joint$hasErrors)
-  class(tree) <- c("dataperrorreport", class(tree))
+  PruneErrorReport(tree, "reference")
   return (tree)
 }
 
@@ -91,7 +69,8 @@ CheckReferencesElements <- function(joint, elementName) {
                  joint,
                  "references",
                  element,
-                 2000,
+                 NULL,
+                 "3000",
                  "Reference ", element, " cannot be resolved."
     )
 
