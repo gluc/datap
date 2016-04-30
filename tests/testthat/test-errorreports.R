@@ -148,6 +148,7 @@ test_that("reference error report multiple error", {
 
 
 
+
 test_that("aggregation error", {
   contextString <- "
 SPX:

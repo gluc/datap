@@ -86,8 +86,7 @@ ResolveFlow <- function(tree) {
           )
 
 
-  tree$Do(function(node) node$downstream <- GetDownstreamPath(node), #Use relative path instead!
-          filterFun = function(node) !is.null(node$type) && node$type %in% JOINT_TYPES_FUN)
+  tree$Do(function(node) node$downstream <- GetDownstreamPath(node), filterFun = isNotRoot)
 
 
 
@@ -105,21 +104,23 @@ ReplaceNodesWithLol <- function(rawTree, name, lol) {
 }
 
 
-
+#' @importFrom data.tree isNotRoot
 ParseTree <- function(tree) {
   tree$name <- "context"
   tree$type <- "context"
 
   class(tree) <- c("context", class(tree))
 
+  #data.tree:::print.Node(tree, ds = function(joint) paste0(joint$downstream, collapse = "|"))
+
   tree$Do(function(joint) {
     ds <- joint$Navigate(joint$downstream)
-    if (length(ds$upstream) == 0) ds$upstream[[joint$name]] <- joint
+    ds$upstream[[joint$name]] <- joint
   },
-  filterFun = function(node) node$type %in% JOINT_TYPES && !identical(node$type, "tap"))
+  filterFun = isNotRoot)
 
-  tree$Do(function(node) node$upstream <- node$children,
-          filterFun = function(node) is.null(node$upstream))
+  #data.tree:::print.Node(tree, ds = function(joint) paste0(l(joint$upstream, "name"), collapse = "|"))
+
 
   tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
 
@@ -271,11 +272,11 @@ ParseFun <- function(node) {
 
 
 GetDownstreamPath <- function(joint) {
-  type <- joint$parent$type
-  if (identical(type, "tap")) return ("..")
-  if (is.null(type) || !type %in% JOINT_TYPES_FUN) return (NULL)
-  if (identical(type, "junction")) return ("..")
-  if (identical(type, "pipe")) {
+  if (!joint$type %in% JOINT_TYPES_FUN) return ("..") #structure, tap
+  parentType <- joint$parent$type
+  if (identical(parentType, "tap")) return ("..")
+  if (identical(parentType, "junction")) return ("..")
+  if (identical(parentType, "pipe")) {
     if (joint$position == 1) return ("..")
     ds <- joint$parent$children[[joint$position - 1]]
     #if (identical(ds$type, "junction")) stop(paste0("No element allowed after junction ", ds$name, "!"))
@@ -288,7 +289,7 @@ GetDownstreamPath <- function(joint) {
     } else pth <- paste("..", ds$name, sep = "/")
     return (pth)
   }
-  else stop(paste0("Unexpected joint parent type ", type, " of joint ", joint$name))
+  else stop(paste0("Unexpected joint parent type ", parentType, " of joint ", joint$name))
 }
 
 
