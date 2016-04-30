@@ -72,7 +72,7 @@ CheckReferencesElements <- function(joint, elementName) {
                  element,
                  NULL,
                  "3000",
-                 "Reference ", element, " cannot be resolved."
+                 "Reference '", element, "' cannot be resolved."
     )
 
   }

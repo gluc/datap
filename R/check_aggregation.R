@@ -43,14 +43,26 @@ CheckAggregationTree <- function(tree) {
 
 CheckSingleDownstream <- function(joint) {
 
-    AssertSyntax(length(joint$downstream) == 1,
-                 joint,
-                 "aggregation",
-                 "downstream",
-                 joint$downstream,
-                 "4000",
-                 "Cannot connect '", joint$name, "' to more than one downstream joints."
-                 )
+
+  st <- AssertSyntax(length(joint$downstream) > 0,
+               joint,
+               "aggregation",
+               "downstream",
+               joint$downstream,
+               "4000",
+               "No downstream connection found for '", joint$name, "'."
+  )
+
+  if (!st) return(st)
+
+  AssertSyntax(length(joint$downstream) == 1,
+               joint,
+               "aggregation",
+               "downstream",
+               joint$downstream,
+               "4000",
+               "Cannot connect '", joint$name, "' to more than one downstream joints."
+               )
 
 }
 

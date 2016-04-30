@@ -115,6 +115,39 @@ SPX:
 
 
 
+test_that("reference error report multiple error", {
+  contextString <- "
+  MATap:
+    type: tap
+    parameters:
+      tapPath:
+      periods: 10
+      ...:
+    pipe:
+      type: pipe
+      SMA:
+        type: processor
+        function: TTR::SMA
+        arguments:
+          x: '@inflow'
+          'n': '@periods'
+      Tap:
+        type: processor
+        function: Tap
+        arguments:
+          context: '@context'
+          tapPath: '@tapPath'
+          ...: '@...'
+"
+
+  errorReport <- CheckReferences(textConnection(contextString))
+
+  expect_false(errorReport$`.hasErrors`, "No errors expected")
+
+})
+
+
+
 test_that("aggregation error", {
   contextString <- "
 SPX:

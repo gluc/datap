@@ -115,12 +115,14 @@ ParseTree <- function(tree) {
   tree$Do(function(joint) {
     ds <- joint$Navigate(joint$downstream)
     if (length(ds$upstream) == 0) ds$upstream[[joint$name]] <- joint
-  })
+  },
+  filterFun = function(node) node$type %in% JOINT_TYPES && !identical(node$type, "tap"))
+
+  tree$Do(function(node) node$upstream <- node$children,
+          filterFun = function(node) is.null(node$upstream))
 
   tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
 
-  #set downstream to single string
-  tree$Do(function(node) node$downstream <- node$downstream[[1]], filterFun = function(joint) is.list(joint$downstream))
 
   #add dummy function to pipes
   tree$Do(function(node) {
@@ -130,7 +132,12 @@ ParseTree <- function(tree) {
 
   tree$Do(function(node) node$variables <- ParseVariables(node$parent, node$variables))
   tree$Do(function(node) node$parameters <- ParseVariables(node, node$parameters), filterFun = function(node) identical(node$type, "tap"))
-  tree$Do(function(node) node$parameters <- GetUpstreamParameters(node))
+
+  tree %>%
+    Traverse(traversal = function(node) node$upstream,
+             filterFun = function(node)!(node$type %in% JOINT_TYPES_STRUCTURE)) %>%
+    rev %>%
+    Do(function(node) node$parameters <- GetParameters(node))
 
   tree$Do(function(node) node$arguments <- ParseVariables(node, node$arguments))
   tree$Do(fun = function(node) node$dynamicVariables <- GetDynamicVariables(node))
@@ -146,6 +153,12 @@ ParseTree <- function(tree) {
   tree$TapNames <- function() names(tree$children)
 }
 
+
+GetTap <- function(joint) {
+  if (joint$type == "tap") return (joint)
+  if (joint$isRoot) return (NULL)
+  return (GetTap(joint$parent))
+}
 
 
 
@@ -368,15 +381,18 @@ ParseParameters <- function(node, funArgs, myArgs, ellipsis) {
 
 # Finds the tap parameters that will be used on
 # this joint or on any of its upstream joints
-GetUpstreamParameters <- function(node) {
-  #if (node$name == "MATap") browser()
-  parameters <- GetAttribute(node, "parameters", inheritFromAncestors = TRUE, nullAsNa = FALSE)
-  if (length(parameters) == 0) return (list())
-  Traverse(node, traversal = function(node) node$upstream[[1]]) %>%
-  Get(function(x) parameters[paste0('@', names(parameters)) %in% x$arguments] %>% names) %>%
-    unique %>%
-    unlist -> prms
-  res <- parameters[names(parameters) %in% prms]
+GetParameters <- function(node) {
+  availableParameters <- GetTap(node)$parameters
+
+  if (length(availableParameters) == 0) return (list())
+
+  upstreamParameters <- Get(node$upstream, "parameters")
+
+  availableParameters[paste0('@', names(availableParameters)) %in% node$arguments] %>% names -> myParameters
+
+  myParameters <- c(myParameters, upstreamParameters) %>% unique
+
+  res <- availableParameters[names(availableParameters) %in% myParameters]
   return (res)
 }
 
