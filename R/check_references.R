@@ -17,14 +17,14 @@ CheckReferences <- function(con) {
   tree <- CreateRawTree(lol)
 
   errors <- CheckSyntaxRawTree(tree)
-  if (errors$hasErrors) {
+  if (errors$`.hasErrors`) {
     stop("Context contains syntax errors! Run CheckSyntax(con) to get an error report.")
   }
 
   ResolveFlow(tree)
 
   aggregationErrors <- CheckAggregationTree(tree)
-  if (aggregationErrors$hasErrors) {
+  if (aggregationErrors$`.hasErrors`) {
     stop("Context contains aggregation errors! Run CheckAggregation(con) to get an error report.")
   }
 
@@ -41,7 +41,8 @@ CheckReferences <- function(con) {
 CheckReferencesTree <- function(tree) {
   tree <- Clone(tree)
   tree$Do(CheckReferencesJoint, filterFun = isNotRoot)
-  PruneErrorReport(tree, "reference")
+  FindErrors(tree)
+  EnrichErrorReport(tree, "reference")
   return (tree)
 }
 

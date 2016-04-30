@@ -11,7 +11,7 @@ print.context <- function(x, ...) {
 #' @export
 print.tap <- function(x, ...) {
   NextMethod(x,
-             NULL, type,
+             NULL, "type",
              downstream = function(n) paste(n$downstream, collapse = "/")
   )
 }
@@ -21,6 +21,6 @@ print.tap <- function(x, ...) {
 print.dataperrorreport <- function(x, ...) {
   NextMethod(x,
              NULL, "type", "errorCount", "code", "message",
-             pruneFun = function(joint) joint$hasErrors
+             pruneFun = function(joint) joint$`.hasErrors`
              )
 }

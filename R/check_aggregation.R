@@ -17,7 +17,7 @@ CheckAggregation <- function(con) {
   tree <- CreateRawTree(lol)
 
   errors <- CheckSyntaxRawTree(tree)
-  if (errors$hasErrors) {
+  if (errors$`.hasErrors`) {
     stop("Context contains syntax errors! Run CheckSyntax(con) to get an error report.")
   }
 
@@ -34,7 +34,8 @@ CheckAggregationTree <- function(tree) {
 
   tree$Do(CheckSingleDownstream, filterFun = function(joint) !is.null(joint$type) && joint$type %in% JOINT_TYPES_FUN)
 
-  PruneErrorReport(tree, "aggregation")
+  FindErrors(tree)
+  EnrichErrorReport(tree, "aggregation")
 
   return (tree)
 }
@@ -48,7 +49,7 @@ CheckSingleDownstream <- function(joint) {
                  "downstream",
                  joint$downstream,
                  "4000",
-                 "Cannot connect ", joint$name, " to more than one downstream joints."
+                 "Cannot connect '", joint$name, "' to more than one downstream joints."
                  )
 
 }

@@ -27,6 +27,7 @@ do.call.intrnl <- function(what, args) {
 
 
 AssertSyntax <- function(condition, joint, errorSection, errorSubsection, errorSubsubsections, errorCode, ...) {
+  #if (joint$name == "doA") browser()
   if (!condition) {
     msg <- list(...)
     msg <- paste0(msg, collapse = "")
@@ -53,33 +54,34 @@ AssertSyntax <- function(condition, joint, errorSection, errorSubsection, errorS
 }
 
 
-PruneErrorReport <- function(tree, errorReportType) {
-  tree$Do(function(joint) joint$hasErrors <- Aggregate(joint,
+FindErrors <- function(tree) {
+  tree$Do(function(joint) joint$`.hasErrors` <- Aggregate(joint,
                                                        function(usj) {
-                                                         if (length(usj$hasErrors) > 0) return(usj$hasErrors)
-                                                         if (!usj$isLeaf) return (NULL)
-                                                         return (usj$parent$name == ".errors" ||
-                                                                   (usj$level > 2 && usj$parent$parent$name == ".errors") ||
-                                                                   (usj$level > 3 && usj$parent$parent$parent$name == ".errors")   )
+                                                         if (usj$name == ".errors" ||
+                                                             usj$parent$name == ".errors" ||
+                                                             (usj$level > 2 && usj$parent$parent$name == ".errors") ||
+                                                             (usj$level > 3 && usj$parent$parent$parent$name == ".errors")   ) return (TRUE)
+                                                         if (usj$isLeaf) return (FALSE)
+                                                         return (NULL)
 
                                                        },
                                                        aggFun = any),
           traversal = "post-order")
 
+  invisible (tree$`.hasErrors`)
 
-  tree$Prune(pruneFun = function(joint) joint$hasErrors)
+}
 
 
-  if (!tree$hasErrors) {
+EnrichErrorReport <- function(tree, errorReportType) {
+
+
+  if (!tree$`.hasErrors`) {
     tree$code <- "0000"
     tree$message <- "No errors"
     tree$errorCount <- 0
   } else {
-    errCount <- Aggregate(tree, function(joint) {
-      if (joint$name == ".errors") return (joint$leafCount)
-      if (joint$isLeaf) return (0)
-      return (NULL)
-    }, aggFun = sum)
+    errCount <- Traverse(tree, filterFun = function(joint) identical(joint$type, "error")) %>% length
     tree$message <- paste(errCount, "reference errors!")
     tree$errorCount <- errCount
   }

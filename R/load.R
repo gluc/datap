@@ -22,21 +22,21 @@ Load <- function(con) {
   tree <- CreateRawTree(lol)
 
   errors <- CheckSyntaxRawTree(tree)
-  if (errors$hasErrors) {
+  if (errors$`.hasErrors`) {
     stop("Context contains syntax errors! Run CheckSyntax(con) to get an error report.")
   }
 
   ResolveFlow(tree)
 
   aggregationErrors <- CheckAggregationTree(tree)
-  if (aggregationErrors$hasErrors) {
+  if (aggregationErrors$`.hasErrors`) {
     stop("Context contains aggregation errors! Run CheckAggregation(con) to get an error report.")
   }
 
   ParseTree(tree)
 
   refErrors <- CheckReferencesTree(tree)
-  if (refErrors$hasErrors) {
+  if (refErrors$`.hasErrors`) {
     stop("Context contains unresolved references! Run CheckReferences(con) to get an error report.")
   }
   return (tree)
@@ -91,6 +91,7 @@ ResolveFlow <- function(tree) {
 
 
 
+
 }
 
 ReplaceNodesWithLol <- function(rawTree, name, lol) {
@@ -110,6 +111,12 @@ ParseTree <- function(tree) {
   tree$type <- "context"
 
   class(tree) <- c("context", class(tree))
+
+  tree$Do(function(joint) {
+    ds <- joint$Navigate(joint$downstream)
+    if (length(ds$upstream) == 0) ds$upstream[[joint$name]] <- joint
+  })
+
   tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
 
   #set downstream to single string
@@ -208,8 +215,8 @@ ParseFun <- function(node) {
       funArgs <- ParseParameters(node, funArgs, myArgs, ellipsis)
 
       if ("@inflow" %in% node$dynamicVariables) {
-        upstream <- GetUpstreamJoints(node)
-        if (is.null(upstream)) browser()
+        upstream <- node$upstream
+        if (length(upstream)) stop(paste0("Cannot find @inflowfun for ", node$name))
         children <- lapply(upstream, function(child) {
           childArguments <- GetChildArguments(node, child, myArgs, ellipsis)
           do.call(child$fun, childArguments)
@@ -219,8 +226,8 @@ ParseFun <- function(node) {
         funArgs[[which(funArgs == "@inflow")]] <- children
       }
       if ("@inflowfun" %in% node$dynamicVariables) {
-        upstream <- GetUpstreamJoints(node)
-        if (is.null(upstream)) browser()
+        upstream <- node$upstream
+        if (length(upstream) == 0) stop(paste0("Cannot find @inflowfun for ", node$name))
         children <- lapply(upstream, function(child) child$fun)
         if (length(upstream) == 1) children <- children[[1]]
         funArgs[[which(funArgs == "@inflowfun")]] <- children
@@ -246,22 +253,8 @@ ParseFun <- function(node) {
 }
 
 
-GetUpstreamJoints <- function(joint) {
-  if (is.null(joint$type) || !joint$type %in% JOINT_TYPES_FUN) return (joint$children)
-  if (identical(joint$type, "junction")) return (joint$children)
-  if (identical(joint$type, "pipe")) return (joint$children[1])
-  else {
-    if (joint$position < joint$parent$count) return(joint$siblings[joint$position]) #next sibling
-    if (identical (joint$parent$type, "tap")) return (NULL)
-    if (joint$parent$position < joint$parent$parent$count) return(joint$parent$siblings[joint$parent$position])
-    return (NULL)
-  }
-}
 
 
-GetUpstreamJoint <- function(joint) {
-  GetUpstreamJoints(joint)[[1]]
-}
 
 
 GetDownstreamPath <- function(joint) {
@@ -379,7 +372,7 @@ GetUpstreamParameters <- function(node) {
   #if (node$name == "MATap") browser()
   parameters <- GetAttribute(node, "parameters", inheritFromAncestors = TRUE, nullAsNa = FALSE)
   if (length(parameters) == 0) return (list())
-  Traverse(node, traversal = GetUpstreamJoint) %>%
+  Traverse(node, traversal = function(node) node$upstream[[1]]) %>%
   Get(function(x) parameters[paste0('@', names(parameters)) %in% x$arguments] %>% names) %>%
     unique %>%
     unlist -> prms

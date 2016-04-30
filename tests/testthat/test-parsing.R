@@ -11,7 +11,7 @@ SPX:
 "
 
   errorReport <- CheckSyntax(textConnection(contextString))
-  expect_true(!errorReport$hasErrors, "No syntax errors expected")
+  expect_true(!errorReport$`.hasErrors`, "No syntax errors expected")
 
 })
 
@@ -27,6 +27,6 @@ SPX:
 "
 
   errorReport <- CheckSyntax(textConnection(contextString))
-  expect_true(errorReport$hasErrors, "Syntax error 2000 expected")
+  expect_true(errorReport$`.hasErrors`, "Syntax error 2000 expected")
 
 })

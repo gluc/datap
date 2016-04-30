@@ -31,9 +31,16 @@ CheckSyntaxRawTree <- function(rawTree) {
   tree <- Clone(rawTree)
   syntaxDef <- GetSyntaxDefinition()
 
-  tree$Do(function(joint) CheckSyntaxJoint(joint, syntaxDef), filterFun = isNotRoot)
+  tree$Do(function(joint) CheckSyntaxType(joint), filterFun = isNotRoot)
 
-  PruneErrorReport(tree, "syntax")
+  if (!FindErrors(tree)) {
+
+    tree$Do(function(joint) CheckSyntaxJoint(joint, syntaxDef), filterFun = isNotRoot)
+
+    FindErrors(tree)
+
+  }
+  EnrichErrorReport(tree, "syntax")
 
   return (tree)
 
@@ -197,7 +204,6 @@ NonErrorCount <- function(joint) {
 }
 
 CheckSyntaxJoint <- function(joint, syntaxDefinition) {
-  if(!CheckSyntaxType(joint)) return()
 
   mySyn <- syntaxDefinition[[joint$type]]
   CheckSyntaxChildCount(joint, mySyn$minChildren, mySyn$maxChildren)
