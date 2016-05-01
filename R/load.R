@@ -104,7 +104,7 @@ ReplaceNodesWithLol <- function(rawTree, name, lol) {
 }
 
 
-#' @importFrom data.tree isNotRoot
+#' @importFrom data.tree isNotRoot isLeaf
 ParseTree <- function(tree) {
   tree$name <- "context"
   tree$type <- "context"
@@ -118,6 +118,7 @@ ParseTree <- function(tree) {
     ds$upstream[[joint$name]] <- joint
   },
   filterFun = isNotRoot)
+  #tree$Do(function(joint) joint$upstream <- list(), filterFun = isLeaf)
 
   #data.tree:::print.Node(tree, ds = function(joint) paste0(l(joint$upstream, "name"), collapse = "|"))
 
@@ -139,6 +140,8 @@ ParseTree <- function(tree) {
              filterFun = function(node)!(node$type %in% JOINT_TYPES_STRUCTURE)) %>%
     rev %>%
     Do(function(node) node$parameters <- GetParameters(node))
+
+  #data.tree:::print.Node(context$FindNode("SPX"), prms = function(j) paste0(j$parameters, collapse = "|"))
 
   tree$Do(function(node) node$arguments <- ParseVariables(node, node$arguments))
   tree$Do(fun = function(node) node$dynamicVariables <- GetDynamicVariables(node))
@@ -230,7 +233,7 @@ ParseFun <- function(node) {
 
       if ("@inflow" %in% node$dynamicVariables) {
         upstream <- node$upstream
-        if (length(upstream)) stop(paste0("Cannot find @inflowfun for ", node$name))
+        if (length(upstream) == 0) stop(paste0("Cannot find @inflow for ", node$name))
         children <- lapply(upstream, function(child) {
           childArguments <- GetChildArguments(node, child, myArgs, ellipsis)
           do.call(child$fun, childArguments)
@@ -383,17 +386,34 @@ ParseParameters <- function(node, funArgs, myArgs, ellipsis) {
 # Finds the tap parameters that will be used on
 # this joint or on any of its upstream joints
 GetParameters <- function(node) {
+
+
+  #this doesn't work yet fully!
+  #filePath <- system.file("extdata", "context1.yaml", package="datapR")
+  #context <- Load(filePath)
+  #context$FindNode("SPX")$tap()
+  #browser()
+  #if (node$name == "DownloadYahoo" && GetTap(node)$name == "SPX") browser()
+
   availableParameters <- GetTap(node)$parameters
 
   if (length(availableParameters) == 0) return (list())
+  if (node$type == "tap") return (availableParameters)
 
-  upstreamParameters <- Get(node$upstream, "parameters")
+  if (length(node$upstream) == 0) upstreamParameterNames <- vector(mode = "character", length = 0)
+  else {
+    Get(node$upstream, function(j) names(j$parameters), simplify = FALSE) %>%
+      unname %>%
+      do.call(c, .) %>%
+      unique ->
+      upstreamParameterNames
+  }
 
-  availableParameters[paste0('@', names(availableParameters)) %in% node$arguments] %>% names -> myParameters
+  availableParameters[paste0('@', names(availableParameters)) %in% node$arguments] %>% names -> myParameterNames
 
-  myParameters <- c(myParameters, upstreamParameters) %>% unique
+  myParameterNames <- c(myParameterNames, upstreamParameterNames) %>% unique
 
-  res <- availableParameters[names(availableParameters) %in% myParameters]
+  res <- availableParameters[names(availableParameters) %in% myParameterNames]
   return (res)
 }
 

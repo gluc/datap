@@ -172,3 +172,6 @@ Closing:
   expected <- c(Closing = "context", Old = "Closing", X1 = "Old", X1 = "X1", New = "Closing", X2 = "New", X2 = "X2") #fill in
   expect_equal(flow, expected)
 })
+
+
+
