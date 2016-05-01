@@ -135,16 +135,18 @@ ParseTree <- function(tree) {
   tree$Do(function(node) node$variables <- ParseVariables(node$parent, node$variables))
   tree$Do(function(node) node$parameters <- ParseVariables(node, node$parameters), filterFun = function(node) identical(node$type, "tap"))
 
+
+  #data.tree:::print.Node(context$FindNode("SPX"), prms = function(j) paste0(j$parameters, collapse = "|"))
+
+  tree$Do(function(node) node$arguments <- ParseVariables(node, node$arguments))
+  tree$Do(fun = function(node) node$dynamicVariables <- GetDynamicVariables(node))
+
   tree %>%
     Traverse(traversal = function(node) node$upstream,
              filterFun = function(node)!(node$type %in% JOINT_TYPES_STRUCTURE)) %>%
     rev %>%
     Do(function(node) node$parameters <- GetParameters(node))
 
-  #data.tree:::print.Node(context$FindNode("SPX"), prms = function(j) paste0(j$parameters, collapse = "|"))
-
-  tree$Do(function(node) node$arguments <- ParseVariables(node, node$arguments))
-  tree$Do(fun = function(node) node$dynamicVariables <- GetDynamicVariables(node))
 
   Traverse(tree,
            filterFun = function(node) !is.null(node$type) && node$type %in% JOINT_TYPES_FUN) -> traversal
@@ -398,7 +400,6 @@ GetParameters <- function(node) {
   availableParameters <- GetTap(node)$parameters
 
   if (length(availableParameters) == 0) return (list())
-  if (node$type == "tap") return (availableParameters)
 
   if (length(node$upstream) == 0) upstreamParameterNames <- vector(mode = "character", length = 0)
   else {
@@ -409,7 +410,8 @@ GetParameters <- function(node) {
       upstreamParameterNames
   }
 
-  availableParameters[paste0('@', names(availableParameters)) %in% node$arguments] %>% names -> myParameterNames
+
+  availableParameters[paste0('@', names(availableParameters)) %in% c(node$arguments, node$variables)] %>% names -> myParameterNames
 
   myParameterNames <- c(myParameterNames, upstreamParameterNames) %>% unique
 
