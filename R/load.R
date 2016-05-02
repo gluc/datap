@@ -222,7 +222,7 @@ ParseFun <- function(node) {
     #if (node$name == "Cache") browser()
     CallStep <- function() {
       #if (node$name == "MinLength") browser()
-      print (node$name)
+      #print (node$name)
       #parse parameters
       parameterNames <- ls()
       myArgs <- lapply(parameterNames, function(x) get(x))
@@ -259,7 +259,7 @@ ParseFun <- function(node) {
         }
         return (children)
       }
-      if (!node$type == "factory") print(paste0("Processed ", node$name))
+      #if (!node$type == "factory") print(paste0("Processed ", node$name))
       return (res)
     }
     CallStep <- SetFormals(CallStep, node)

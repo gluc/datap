@@ -30,3 +30,74 @@ SPX:
   expect_true(errorReport$`.hasErrors`, "Syntax error 2000 expected")
 
 })
+
+
+
+test_that("module", {
+  contextString <- "
+modules:
+  type: module
+  M1: &M1
+    type: pipe
+    Prod:
+      type: processor
+      function: prod
+      arguments:
+        - '@inflow'
+        - '@prod'
+    Sum:
+      type: processor
+      function: sum
+      arguments:
+        - '@number'
+        - '@add'
+Tap:
+  type: tap
+  parameters:
+    number:
+    prod: 2
+    add: 3
+  Pipe: *M1
+"
+
+  context <- Load(textConnection(contextString))
+  res <- context$Tap$tap(3)
+  expect_equal(res, 12)
+
+  res <- context$Tap$tap(5, prod = 4, add = 1)
+  expect_equal(res, 24)
+
+  expect_equal(formals(context$Tap$Pipe$Prod$fun), alist(number = , prod = 2, add = 3) %>% as.pairlist())
+
+  expect_equal(formals(context$Tap$Pipe$Sum$fun), alist(number = , add = 3) %>% as.pairlist())
+
+
+})
+
+
+test_that("inflowfun", {
+  contextString <- "
+RandomCache:
+  type: tap
+  Pipe:
+    type: pipe
+    Cache:
+      type: factory
+      function: Cache
+      arguments:
+        f: '@inflowfun'
+        timeout: 3600
+    Random:
+      type: processor
+      function: rnorm
+      arguments:
+        - 1
+"
+
+  context <- Load(textConnection(contextString))
+  r1 <- context$RandomCache$tap()
+  r2 <- context$RandomCache$tap()
+
+  expect_equal(r1, r2)
+
+})
