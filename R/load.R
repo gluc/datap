@@ -202,7 +202,7 @@ ParseFun <- function(node) {
     #print (node$name)
     #if (node$name == "Cache") browser()
     CallStep <- function() {
-      #if (node$name == "Pipe") browser()
+      #if (node$name == "ConditionalPipe") browser()
       #print (node$name)
       #parse parameters
       parameterNames <- ls()
@@ -229,9 +229,9 @@ ParseFun <- function(node) {
         #if (!node$type == "factory") print(paste0("Processed ", node$name))
         return (res)
       } else {
-        child <- node$upstream[[1]]
-        childArguments <- GetUpstreamFunArguments(node, child, myArgs, ellipsis)
-        res <- do.call(child$fun, childArguments)
+        upstream <- node$Navigate(GetSourcesPath(node, path = ".."))$upstream[[1]]
+        upstreamArguments <- GetUpstreamFunArguments(node, upstream, myArgs, ellipsis)
+        res <- do.call(upstream$fun, upstreamArguments)
         return (res)
       }
 

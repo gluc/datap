@@ -32,15 +32,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Scope
 
-datap is a lightweight YAML format to define configurable, modular data processes. datap configurations can be used to acquire, pre-process, quality-assure, and merge data.
+datap is a lightweight DSL (Domain Specific Language) to define configurable, modular, and re-usable data processes. datap configurations can be used to acquire, pre-process, quality-assure, and merge data.
 
 datap is language neutral.
 
 In practice, each datap setup will consist of the following elements:
 
-1. One or more datap configuration files.
-2. One or more code libraries in the programming language of your choice. These libraries do the actual units of work.
-3. A datap interpreter, in the programming language of your choice. The interpreter parses the configuration file, and maps processing steps defined in (1) to actual library functions available in (2).
+1. One or more **datap configuration files**. These files define the identifiers of specific data sets, as well as their source and pre-processing steps.
+2. One or more **code libraries** in the programming language of your choice. These libraries do the actual units of work of the pre-processing steps defined in (1), like e.g. loading data into memory, data cleaning, merging, etc. The code libraries are typically datap-agnostic.
+3. A **datap interpreter**, in the programming language of your choice. The interpreter parses the datap configuration file, and maps pre-processing steps defined in (1) to actual library functions available in (2).
 
 This document is about the first part only: the datap configuration files.
 
@@ -66,10 +66,10 @@ A [`>context`](#context) spans a tree whose nodes are each one the following typ
 * [`>structure`](#structure): organise taps into hierarchies
 * flow control:
 	* [`>pipe`](#pipe): combine joints serially
-	* [`>junction`](#junction): combine multiple joints into one
+	* [`>junction`](#junction): merge multiple joints into one
 * data processing:
 	* [`>processor`](#processor): unit of work (data acquisition and pre-processing)
-	* [`>factory`](#factory): functional programming construct
+	* [`>factory`](#factory): meta-programming construct
 * error handling:
 	* [`>warning`](#warning)
 	* [`>error`](#error)
@@ -83,13 +83,14 @@ Each joint consists of the following:
     + [`>parameters`](#parameters)
     + [`>function`](#function)
     + [`>arguments`](#arguments)
+    + [`>condition`](#condition)
 3. other, nested *joints*
 
-The flow of data is from leafs towards the root, and ends at a [`>tap`](#tap). Thus, each sub-tree below a [`>tap`](#tap) defines the processing steps of a [`>tap`](#tap). In line with data flow, we use the term *upstream* to denote joints that are in a sub-tree relative to a given joint. We use *downstream* to denote joints that are in the joint's ancestry.
+The flow of data is from leafs towards the root, and ends at a [`>tap`](#tap). Thus, each sub-tree below a [`>tap`](#tap) defines the processing steps of a [`>tap`](#tap). In line with data flow, we use the term *upstream* to denote joints that are processed before a given joint. We use *downstream* to denote joints that are processed after a given joint.
 
 ## *variables*
 
-Variables can be defined in a [`>structure`](#structure), [`>tap`](#tap), [`>pipe`](#pipe), and [`>junction`](#junction) in a given [`>context`](#context).
+Variables can be defined in a [`>structure`](#structure), [`>tap`](#tap), [`>pipe`](#pipe), and [`>junction`](#junction).
 
 A [`>variables`](#variables) section is an *associative list*, called "variables". Each variable is an entry in that list, with the *key* defining the variable *name*, and the *value* defining the variable *value*:
 
@@ -101,7 +102,7 @@ A [`>variables`](#variables) section is an *associative list*, called "variables
 
 The names of *[special references](#special-references)* cannot be used as variable name (namely: "inflow", "inflowfun", "context").
 
-The *scope* of a variable is always upstream. A variable value can be overwritten in an upstream joint.
+The *scope* of a variable is the sub-tree spanned by the joint in which the variable is defined. A variable value can be overwritten by an upstream joint.
 
 Example:
 
@@ -151,7 +152,7 @@ AAPL:
 The following variable references can be used without defining the variables downstream:
 
 * [`@inflow`](#@inflow)
-* [`@inflowfun`](@inflowfun)
+* [`@inflowfun`](#@inflowfun)
 * [`@context`](#context)
 
 They are *reserved words* and cannot be used as variable names.
@@ -248,7 +249,7 @@ In terms of data processing, structures are of no relevance.
 
 ```{r, echo=FALSE, comment=""}
 library(datapR)
-s <- GetSyntaxDefinition()
+s <- datapR:::GetSyntaxDefinition()
 print(s$structure)
 ```
 
