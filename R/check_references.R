@@ -59,6 +59,7 @@ CheckReferencesJoint <- function(joint) {
   CheckReferencesElements(joint, "variables")
   CheckReferencesElements(joint, "arguments")
   CheckReferencesElements(joint, "parameters")
+  CheckReferencesElements(joint, "condition")
 
 }
 

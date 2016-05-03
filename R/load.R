@@ -93,15 +93,6 @@ ResolveFlow <- function(tree) {
 
 }
 
-ReplaceNodesWithLol <- function(rawTree, name, lol) {
-  rawTree$Do(function(node) {
-    for(n in node$path[-1]) lol <- lol[[n]]
-    parent <- node$parent
-    parent$RemoveChild(name)
-    parent[[name]] <- lol
-  },
-  filterFun = function(node) node$name == name)
-}
 
 
 #' @importFrom data.tree isNotRoot isLeaf
@@ -132,32 +123,45 @@ ParseTree <- function(tree) {
     node$arguments <- list(x = "@inflow")
   }, filterFun = function(node) identical(node$type, "pipe"))
 
-  tree$Do(function(node) node$variables <- ParseVariables(node$parent, node$variables))
-  tree$Do(function(node) node$parameters <- ParseVariables(node, node$parameters), filterFun = function(node) identical(node$type, "tap"))
-
+  tree$Do(function(node) node$variables <- SubstituteVariables(node$parent, node$variables))
+  tree$Do(function(node) node$condition <- SubstituteVariables(node, node$condition))
+  tree$Do(function(node) node$parameters <- SubstituteVariables(node, node$parameters), filterFun = function(node) identical(node$type, "tap"))
+  tree$Do(function(node) node$arguments <- SubstituteVariables(node, node$arguments))
+  tree$Do(fun = function(node) node$dynamicVariables <- GetUnresolvedVariablesInFunArguments(node))
 
   #data.tree:::print.Node(context$FindNode("SPX"), prms = function(j) paste0(j$parameters, collapse = "|"))
-
-  tree$Do(function(node) node$arguments <- ParseVariables(node, node$arguments))
-  tree$Do(fun = function(node) node$dynamicVariables <- GetDynamicVariables(node))
 
   tree %>%
     Traverse(traversal = function(node) node$upstream,
              filterFun = function(node)!(node$type %in% JOINT_TYPES_STRUCTURE)) %>%
     rev %>%
-    Do(function(node) node$parameters <- GetParameters(node))
+    Do(function(node) node$parameters <- GetRequiredParameters(node))
 
 
   Traverse(tree,
            filterFun = function(node) !is.null(node$type) && node$type %in% JOINT_TYPES_FUN) -> traversal
   traversal %>% rev %>%
-  Do(function(joint) joint$fun <- ParseFun(joint))
+    Do(function(joint) joint$fun <- ParseFun(joint))
 
   tree$Do(fun = function(node) node$tap <- node$children[[1]]$fun,
           filterFun = function(node) identical(node$type, "tap"))
 
   tree$TapNames <- function() names(tree$children)
 }
+
+
+
+ReplaceNodesWithLol <- function(rawTree, name, lol) {
+  rawTree$Do(function(node) {
+    for(n in node$path[-1]) lol <- lol[[n]]
+    parent <- node$parent
+    parent$RemoveChild(name)
+    parent[[name]] <- lol
+  },
+  filterFun = function(node) node$name == name)
+}
+
+
 
 
 GetTap <- function(joint) {
@@ -168,30 +172,7 @@ GetTap <- function(joint) {
 
 
 
-# Finds static variables in arguments and replaces them
-# with their values.
-ParseVariables <- function(node, funArgs) {
-  if (length(funArgs) == 0) return (funArgs)
-  #parse variables (except @inflow, @inflowfun, etc)
-  for (i in 1:length(funArgs)) {
-    v <- funArgs[[i]]
-    if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
-      if (!IsMacro(v)) {
-        v <- substr(v, 2, nchar(v))
-        tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))
-        if (length(tr) > 0) {
-          vval <- Get(tr[1], function(x) x$variables[[v]])[[1]]
-          funArgs[[i]] <- vval
-        }
-      } else {
-        #macro
-        substr(v, 2, nchar(v)) %>% parse(text = .) -> funArgs[[i]]
-      }
-    }
 
-  }
-  return (funArgs)
-}
 
 IsMacro <- function(v) {
   identical(substr(v, nchar(v), nchar(v)), ")")
@@ -201,7 +182,7 @@ IsMacro <- function(v) {
 # Get variables that are dynamic, such
 # as @inflow, @inflowfun or @context. Assumes non-dynamic
 # variables have already been parsed.
-GetDynamicVariables <- function(node) {
+GetUnresolvedVariablesInFunArguments <- function(node) {
   funArgs <- node$arguments %>% unlist
   funArgs <- funArgs[substr(funArgs, 1, 1) == "@"]
   return (funArgs)
@@ -221,7 +202,7 @@ ParseFun <- function(node) {
     #print (node$name)
     #if (node$name == "Cache") browser()
     CallStep <- function() {
-      #if (node$name == "MinLength") browser()
+      #if (node$name == "Pipe") browser()
       #print (node$name)
       #parse parameters
       parameterNames <- ls()
@@ -231,36 +212,29 @@ ParseFun <- function(node) {
       if ("..." %in% names(formals())) ellipsis <- eval(xprs)
       else ellipsis <- list()
 
-      funArgs <- ParseParameters(node, funArgs, myArgs, ellipsis)
+      if(CheckCondition(node, myArgs, ellipsis)) {
 
-      if ("@inflow" %in% node$dynamicVariables) {
-        upstream <- node$upstream
-        if (length(upstream) == 0) stop(paste0("Cannot find @inflow for ", node$name))
-        children <- lapply(upstream, function(child) {
-          childArguments <- GetChildArguments(node, child, myArgs, ellipsis)
-          do.call(child$fun, childArguments)
-        })
-        if (length(upstream) == 1) children <- children[[1]]
+        funArgs <- SubstituteParameters(node, funArgs, myArgs, ellipsis)
+        funArgs <- SubstituteInflow(node, funArgs, myArgs, ellipsis)
+        funArgs <- SubstituteInflowfun(node, funArgs)
 
-        funArgs[[which(funArgs == "@inflow")]] <- children
-      }
-      if ("@inflowfun" %in% node$dynamicVariables) {
-        upstream <- node$upstream
-        if (length(upstream) == 0) stop(paste0("Cannot find @inflowfun for ", node$name))
-        children <- lapply(upstream, function(child) child$fun)
-        if (length(upstream) == 1) children <- children[[1]]
-        funArgs[[which(funArgs == "@inflowfun")]] <- children
-      }
-      res <- do.call.intrnl(funNme, funArgs)
-      if (node$type == "warning" || node$type == "error") {
-        if (!res[[1]]) {
-          if (node$type == "warning") warning(paste0("step ", node$name, " raised warning:", res[[2]]))
-          if (node$type == "error") stop(paste0("step ", node$name, " raised error:", res[[2]]))
+        res <- do.call.intrnl(funNme, funArgs)
+        if (node$type == "warning" || node$type == "error") {
+          if (!res[[1]]) {
+            if (node$type == "warning") warning(paste0("step ", node$name, " raised warning:", res[[2]]))
+            if (node$type == "error") stop(paste0("step ", node$name, " raised error:", res[[2]]))
+          }
+          return (children)
         }
-        return (children)
+        #if (!node$type == "factory") print(paste0("Processed ", node$name))
+        return (res)
+      } else {
+        child <- node$upstream[[1]]
+        childArguments <- GetUpstreamFunArguments(node, child, myArgs, ellipsis)
+        res <- do.call(child$fun, childArguments)
+        return (res)
       }
-      #if (!node$type == "factory") print(paste0("Processed ", node$name))
-      return (res)
+
     }
     CallStep <- SetFormals(CallStep, node)
     if (node$type == "factory") {
@@ -319,16 +293,7 @@ GetSourcesPath <- function(joint, path = ".") {
 }
 
 
-# Get a list of arguments, matching the upstream function's
-# parameters.
-GetChildArguments <- function(node, child, myArgs, ellipsis) {
-  if ("..." %in% names(formals(child$fun))) {
-    childParameters <- c(ellipsis, myArgs[names(child$parameters)[names(child$parameters) != "..."]])
-  } else {
-    childParameters <- myArgs[names(child$parameters)]
-  }
-  return (childParameters)
-}
+
 
 
 SetFormals <- function(CallStep, node) {
@@ -352,7 +317,40 @@ SetFormals <- function(CallStep, node) {
   return (CallStep)
 }
 
+# Finds static variables in arguments and replaces them
+# with their values.
+SubstituteVariables <- function(node, funArgs) {
+  #if (identical(node$name, "C")) browser()
+  if (length(funArgs) == 0) return (funArgs)
 
+  #parse variables (except @inflow, @inflowfun, etc)
+  for (i in 1:length(funArgs)) {
+    v <- funArgs[[i]]
+    if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
+      if (!IsMacro(v)) {
+        v <- substr(v, 2, nchar(v))
+        tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))
+        if (length(tr) > 0) {
+          vval <- Get(tr[1], function(x) x$variables[[v]])[[1]]
+          if (mode(funArgs) != "list") {
+            if (length(funArgs) == 1) funArgs <- vval
+            else if (mode(vval) != mode(funArgs)) {
+              mode(vval) <- "list"
+              funArgs[[i]] <- vval
+            }
+          } else {
+            funArgs[[i]] <- vval
+          }
+        }
+      } else {
+        #macro
+        substr(v, 2, nchar(v)) %>% parse(text = .) -> funArgs[[i]]
+      }
+    }
+
+  }
+  return (funArgs)
+}
 
 # Replaces variables in funArgs that point to a tap parameter
 # with the respective argument
@@ -363,7 +361,7 @@ SetFormals <- function(CallStep, node) {
 # @param myArgs the arguments of the node$fun (coming from the parameters
 # declaration)
 # @param ellipsis the ellipsis arguments
-ParseParameters <- function(node, funArgs, myArgs, ellipsis) {
+SubstituteParameters <- function(node, funArgs, myArgs, ellipsis) {
 
   if (!is.null(myArgs)) {
     for (i in 1:length(funArgs)) {
@@ -385,17 +383,61 @@ ParseParameters <- function(node, funArgs, myArgs, ellipsis) {
   return (funArgs)
 }
 
+
+SubstituteInflow <- function(node, funArgs, myArgs, ellipsis) {
+  if ("@inflow" %in% node$dynamicVariables) {
+    upstreamJoints <- node$upstream
+    if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflow for ", node$name))
+    upstreamResults <- lapply(upstreamJoints, function(upstreamJoint) {
+      upstreamArguments <- GetUpstreamFunArguments(node, upstreamJoint, myArgs, ellipsis)
+      do.call(upstreamJoint$fun, upstreamArguments)
+    })
+    if (length(upstreamJoints) == 1) upstreamResults <- upstreamResults[[1]]
+
+    funArgs[[which(funArgs == "@inflow")]] <- upstreamResults
+  }
+  return (funArgs)
+}
+
+
+SubstituteInflowfun <- function(node, funArgs) {
+  if ("@inflowfun" %in% node$dynamicVariables) {
+    upstream <- node$upstream
+    if (length(upstream) == 0) stop(paste0("Cannot find @inflowfun for ", node$name))
+    children <- lapply(upstream, function(child) child$fun)
+    if (length(upstream) == 1) children <- children[[1]]
+    funArgs[[which(funArgs == "@inflowfun")]] <- children
+  }
+  return (funArgs)
+}
+
+
+# Get a list of arguments, matching the upstream function's
+# parameters.
+GetUpstreamFunArguments <- function(node, upstreamJoint, myArgs, ellipsis) {
+  if ("..." %in% names(formals(upstreamJoint$fun))) {
+    childParameters <- c(ellipsis, myArgs[names(upstreamJoint$parameters)[names(upstreamJoint$parameters) != "..."]])
+  } else {
+    childParameters <- myArgs[names(upstreamJoint$parameters)]
+  }
+  return (childParameters)
+}
+
+
+CheckCondition <- function(node, myArgs, ellipsis) {
+  if (length(node$condition) == 0) return (TRUE)
+  if (is.logical(node$condition)) return (node$condition)
+  if (node$condition %>% substr(1, 1) %>% identical("@")) {
+    vname <- node$condition %>% substr(2, nchar(node$condition))
+    if (vname %in% names(myArgs)) return ( myArgs[[vname]] )
+    if (vname %in% names(ellipsis)) return (ellipsis[[vname]])
+  }
+  stop(paste0("Cannot resolve condition '", node$condition, "' on node '", node$name, "'"))
+}
+
 # Finds the tap parameters that will be used on
 # this joint or on any of its upstream joints
-GetParameters <- function(node) {
-
-
-  #this doesn't work yet fully!
-  #filePath <- system.file("extdata", "context1.yaml", package="datapR")
-  #context <- Load(filePath)
-  #context$FindNode("SPX")$tap()
-  #browser()
-  #if (node$name == "DownloadYahoo" && GetTap(node)$name == "SPX") browser()
+GetRequiredParameters <- function(node) {
 
   availableParameters <- GetTap(node)$parameters
 
@@ -411,7 +453,7 @@ GetParameters <- function(node) {
   }
 
 
-  availableParameters[paste0('@', names(availableParameters)) %in% c(node$arguments, node$variables)] %>% names -> myParameterNames
+  availableParameters[paste0('@', names(availableParameters)) %in% c(node$arguments, node$variables, node$condition)] %>% names -> myParameterNames
 
   myParameterNames <- c(myParameterNames, upstreamParameterNames) %>% unique
 

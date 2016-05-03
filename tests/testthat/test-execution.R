@@ -1,4 +1,4 @@
-context("fun")
+context("execution")
 
 test_that("parameter in tap", {
   contextString <-"

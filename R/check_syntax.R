@@ -110,7 +110,7 @@ GetSyntaxDefinition <- function(type = NULL) {
 
     res$pipe <- list(
       type = "pipe",
-      allowedElements = c("attributes", "variables"),
+      allowedElements = c("attributes", "variables", "condition"),
       requiredElements = c(),
       allowedParents = c("tap", "pipe", "junction", "module"),
       mustHaveParent = TRUE,
@@ -130,7 +130,7 @@ GetSyntaxDefinition <- function(type = NULL) {
 
     res$processor <- list(
       type = "processor",
-      allowedElements = c("attributes", "function", "arguments"),
+      allowedElements = c("attributes", "function", "arguments", "condition"),
       requiredElements = c("function"),
       allowedParents = c("pipe", "junction", "tap"),
       mustHaveParent = TRUE,
@@ -140,7 +140,7 @@ GetSyntaxDefinition <- function(type = NULL) {
 
     res$factory <- list(
       type = "factory",
-      allowedElements = c("attributes", "function", "arguments"),
+      allowedElements = c("attributes", "function", "arguments", "condition"),
       requiredElements = c("function"),
       allowedParents = c("pipe"),
       mustHaveParent = TRUE,
@@ -150,7 +150,7 @@ GetSyntaxDefinition <- function(type = NULL) {
 
     res$warning <- list(
       type = "warning",
-      allowedElements = c("attributes", "function", "arguments"),
+      allowedElements = c("attributes", "function", "arguments", "condition"),
       requiredElements = c("function"),
       allowedParents = c("pipe"),
       mustHaveParent = TRUE,
@@ -160,7 +160,7 @@ GetSyntaxDefinition <- function(type = NULL) {
 
     res$error <- list(
       type = "error",
-      allowedElements = c("attributes", "function", "arguments"),
+      allowedElements = c("attributes", "function", "arguments", "condition"),
       requiredElements = c("function"),
       allowedParents = c("pipe"),
       mustHaveParent = TRUE,
