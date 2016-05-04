@@ -175,3 +175,52 @@ Closing:
 
 
 
+
+
+test_that("GetSources Path", {
+  contextString <-"
+
+Tap:
+  type: tap
+  Pi1:
+    type: pipe
+    P1:
+      type: processor
+      function: DoP1
+    F2:
+      type: factory
+      function: DoF2
+    W3:
+      type: warning
+      funnction: DoW3
+    J4:
+      type: junction
+      function: DoJ4
+      Pi2:
+        type: pipe
+        P2:
+          type: processor
+          function: DoP2
+        P3:
+          type: processor
+          function: DoP3
+      P4:
+        type: processor
+        function: DoP4
+
+"
+
+
+  lol <- yaml.load(contextString)
+
+  tree <- CreateRawTree(lol)
+
+  res <- tree$Get(function(joint) GetSourcesPath(joint) %>% paste0(collapse = "|"), filterFun = function(j) j$level > 2)
+
+  expected <- c(Pi1 = "./J4/Pi2/P3|./J4/P4", P1 = ".", F2 = ".", W3 = ".", J4 = "./Pi2/P3|./P4", Pi2 = "./P3", P2 = ".", P3 = ".", P4 = ".")
+
+  expect_equal(res, expected)
+
+
+})
+

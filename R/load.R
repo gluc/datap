@@ -189,68 +189,12 @@ GetUnresolvedVariablesInFunArguments <- function(node) {
 }
 
 
-#' @importFrom assertthat assert_that
-#' @importFrom data.tree Traverse Get GetAttribute
-ParseFun <- function(node) {
-
-
-    funNme <- node$`function`
-    funArgs <- node$arguments
-    funArgsNms <- names(funArgs)
-    xprs <- parse(text = "list(...)") #required to avoid warning in CHECK
-
-    #print (node$name)
-    #if (node$name == "Cache") browser()
-    CallStep <- function() {
-      #if (node$name == "ConditionalPipe") browser()
-      #print (node$name)
-      #parse parameters
-      parameterNames <- ls()
-      myArgs <- lapply(parameterNames, function(x) get(x))
-      names(myArgs) <- parameterNames
-
-      if ("..." %in% names(formals())) ellipsis <- eval(xprs)
-      else ellipsis <- list()
-
-      if(CheckCondition(node, myArgs, ellipsis)) {
-
-        funArgs <- SubstituteParameters(node, funArgs, myArgs, ellipsis)
-        funArgs <- SubstituteInflow(node, funArgs, myArgs, ellipsis)
-        funArgs <- SubstituteInflowfun(node, funArgs)
-
-        res <- do.call.intrnl(funNme, funArgs)
-        if (node$type == "warning" || node$type == "error") {
-          if (!res[[1]]) {
-            if (node$type == "warning") warning(paste0("step ", node$name, " raised warning:", res[[2]]))
-            if (node$type == "error") stop(paste0("step ", node$name, " raised error:", res[[2]]))
-          }
-          return (children)
-        }
-        #if (!node$type == "factory") print(paste0("Processed ", node$name))
-        return (res)
-      } else {
-        upstream <- node$Navigate(GetSourcesPath(node, path = ".."))$upstream[[1]]
-        upstreamArguments <- GetUpstreamFunArguments(node, upstream, myArgs, ellipsis)
-        res <- do.call(upstream$fun, upstreamArguments)
-        return (res)
-      }
-
-    }
-    CallStep <- SetFormals(CallStep, node)
-    if (node$type == "factory") {
-      fun <- CallStep()
-    } else fun <- CallStep
-
-    return (fun)
-
-}
-
-
 
 
 
 
 GetDownstreamPath <- function(joint) {
+  #if (joint$name == "final") browser()
   if (!joint$type %in% JOINT_TYPES_FUN) return ("..") #structure, tap
   parentType <- joint$parent$type
   if (identical(parentType, "tap")) return ("..")
@@ -259,63 +203,32 @@ GetDownstreamPath <- function(joint) {
     if (joint$position == 1) return ("..")
     ds <- joint$parent$children[[joint$position - 1]]
     #if (identical(ds$type, "junction")) stop(paste0("No element allowed after junction ", ds$name, "!"))
-    if (ds$type %in% c("junction", "pipe")) {
-      src <- GetSourcesPath(ds, path = "..")
-      if (length(src) > 1) {
-        # stop(paste0("Cannot connect ", joint$name, " upstream. Joint ", joint$Navigate(src), " has more than one source."))
-      }
-      pth <- src
-    } else pth <- paste("..", ds$name, sep = "/")
+    pth <- GetSourcesPath(ds, path = paste("..", ds$name, sep = "/"))
     return (pth)
   }
   else stop(paste0("Unexpected joint parent type ", parentType, " of joint ", joint$name))
 }
 
 
+
+
+
+
 GetSourcesPath <- function(joint, path = ".") {
+
+  if (joint$isLeaf) return (path)
   if (identical(joint$type, "junction")) {
     usjs <- joint$children
-    path <- paste0(path, "/", joint$name)
   } else if (identical(joint$type, "pipe")) {
     usjs <- joint$children[joint$count]
-    path <- paste0(path, "/", joint$name)
-  } else if (identical(joint$parent$type, "pipe")) {
-    usjs <- joint$parent$children[joint$parent$count]
-    #path <- paste0(path, "/", joint$parent$name, "/", joint$name)
-    path <- paste0(path, "/", joint$name)
   } else {
-    path <- paste0(path, "/", joint$name)
-    return (path)
+    stop("Unexpected Error")
   }
-  if (length(usjs) == 1 && identical(usjs[[1]], joint)) return (path)
-  res <- sapply(usjs, function(j) GetSourcesPath(j, path))
+  res <- sapply(usjs, function(j) GetSourcesPath(j, paste(path, j$name, sep = "/")))
   return (res)
 }
 
 
-
-
-
-SetFormals <- function(CallStep, node) {
-
-  if (length(node$parameters) > 0) {
-    parametersList <- node$parameters
-    GetParam <- function(name, defaultValue) {
-      if (is.character(defaultValue)) defaultValue <- paste0("'", defaultValue, "'")
-      if (is.null(defaultValue)) return (paste0(name, " ="))
-      return (paste(name, defaultValue, sep = " = "))
-    }
-
-    1:length(parametersList) %>%
-      lapply(function(i) GetParam(names(parametersList)[[i]], parametersList[[i]])) %>%
-      paste(collapse = ", ") %>%
-      paste0("alist(", ., ")") %>%
-      parse(text = .) %>%
-      eval -> formals(CallStep)
-
-  }
-  return (CallStep)
-}
 
 # Finds static variables in arguments and replaces them
 # with their values.
@@ -348,65 +261,6 @@ SubstituteVariables <- function(node, funArgs) {
       }
     }
 
-  }
-  return (funArgs)
-}
-
-# Replaces variables in funArgs that point to a tap parameter
-# with the respective argument
-#
-# @param node the node
-# @param funArgs the arguments of the processing step, i.e. the
-# function to be called inside the node$fun
-# @param myArgs the arguments of the node$fun (coming from the parameters
-# declaration)
-# @param ellipsis the ellipsis arguments
-SubstituteParameters <- function(node, funArgs, myArgs, ellipsis) {
-
-  if (!is.null(myArgs)) {
-    for (i in 1:length(funArgs)) {
-      v <- funArgs[[i]]
-      if (identical(v, "@...")) {
-        funArgs <- c(funArgs, ellipsis)
-        funArgs <- funArgs[-i]
-      } else if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
-        v <- substr(v, 2, nchar(v))
-        if (!is.null(myArgs[[v]])) {
-          funArgs[[i]] <- myArgs[[v]]
-        }
-      } else if (identical(v, '@context')) {
-        funArgs[[i]] <- node$root
-      }
-
-    }
-  }
-  return (funArgs)
-}
-
-
-SubstituteInflow <- function(node, funArgs, myArgs, ellipsis) {
-  if ("@inflow" %in% node$dynamicVariables) {
-    upstreamJoints <- node$upstream
-    if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflow for ", node$name))
-    upstreamResults <- lapply(upstreamJoints, function(upstreamJoint) {
-      upstreamArguments <- GetUpstreamFunArguments(node, upstreamJoint, myArgs, ellipsis)
-      do.call(upstreamJoint$fun, upstreamArguments)
-    })
-    if (length(upstreamJoints) == 1) upstreamResults <- upstreamResults[[1]]
-
-    funArgs[[which(funArgs == "@inflow")]] <- upstreamResults
-  }
-  return (funArgs)
-}
-
-
-SubstituteInflowfun <- function(node, funArgs) {
-  if ("@inflowfun" %in% node$dynamicVariables) {
-    upstream <- node$upstream
-    if (length(upstream) == 0) stop(paste0("Cannot find @inflowfun for ", node$name))
-    children <- lapply(upstream, function(child) child$fun)
-    if (length(upstream) == 1) children <- children[[1]]
-    funArgs[[which(funArgs == "@inflowfun")]] <- children
   }
   return (funArgs)
 }

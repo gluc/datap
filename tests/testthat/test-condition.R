@@ -163,13 +163,11 @@ Tap:
 
   context <- Load(textConnection(contextString))
 
-  res <- context$Tap$tap(3)
+  expect_warning(context$Tap$tap(3))
 
-  expect_equal(res, 18)
+  res <- context$Tap$tap(3, FALSE)
 
-  res <- context$Tap$tap(6, FALSE)
-
-  expect_equal(res, 9)
+  expect_equal(res, 6)
 
 
 })
