@@ -194,7 +194,7 @@ Tap:
       type: processor
       function: rnorm
       arguments:
-        n: 1
+        'n': 1
         mean: 0
         sd: 1
 "

@@ -24,6 +24,9 @@ CheckAggregation <- function(con) {
   ResolveFlow(tree)
 
   tree <- CheckAggregationTree(tree)
+
+  #TODO: check that source is not conditional
+
   return (tree)
 
 }

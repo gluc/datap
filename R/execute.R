@@ -14,6 +14,7 @@ ParseFun <- function(node) {
   #if (node$name == "Cache") browser()
   CallStep <- function() {
     #if (node$name == "Cache") browser()
+    #browser()
     #print (node$name)
     #parse parameters
     parameterNames <- ls()
@@ -23,32 +24,21 @@ ParseFun <- function(node) {
     if ("..." %in% names(formals())) ellipsis <- eval(xprs)
     else ellipsis <- list()
 
-    if(CheckCondition(node, myArgs, ellipsis)) {
+    funArgs <- SubstituteParameters(node, funArgs, myArgs, ellipsis)
+    inflow <- SubstituteInflow(node, funArgs, myArgs, ellipsis)
+    funArgs <- SubstituteInflowfun(node, inflow$funArgs)
 
-      funArgs <- SubstituteParameters(node, funArgs, myArgs, ellipsis)
-      inflow <- SubstituteInflow(node, funArgs, myArgs, ellipsis)
-      funArgs <- SubstituteInflowfun(node, inflow$funArgs)
-
-      res <- do.call.intrnl(funNme, funArgs)
-      if (node$type == "warning" || node$type == "error") {
-        if (!res[[1]]) {
-          msg <- paste0("Joint '", node$name, "' raised ", node$type)
-          if (length(res) > 1) mst <- paste0(msg,  ":", res[[2]])
-          if (node$type == "warning") warning(msg)
-          if (node$type == "error") stop(msg)
-        }
-        return (inflow$upstreamResults)
+    res <- do.call.intrnl(funNme, funArgs)
+    if (node$type == "warning" || node$type == "error") {
+      if (!res[[1]]) {
+        msg <- paste0("Joint '", node$name, "' raised ", node$type)
+        if (length(res) > 1) mst <- paste0(msg,  ":", res[[2]])
+        if (node$type == "warning") warning(msg)
+        if (node$type == "error") stop(msg)
       }
-      #if (!node$type == "factory") print(paste0("Processed ", node$name))
-      return (res)
-    } else {
-
-      # condition cannot be on junction, so only one upstream joint
-      upstream <- node$Navigate(GetSourcesPath(node, path = "."))$upstream[[1]]
-      upstreamArguments <- GetUpstreamFunArguments(node, upstream, myArgs, ellipsis)
-      res <- do.call(upstream$fun, upstreamArguments)
-      return (res)
+      return (inflow$upstreamResults)
     }
+    return (res)
 
   }
 
@@ -99,11 +89,13 @@ SubstituteParameters <- function(node, funArgs, myArgs, ellipsis) {
 
 SubstituteInflow <- function(node, funArgs, myArgs, ellipsis) {
   if ("@inflow" %in% node$dynamicVariables) {
-    upstreamJoints <- node$upstream
+
+    upstreamJoints <- GetConditionalUpstreamJoints(node$upstream, myArgs, ellipsis)
     if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflow for ", node$name))
     upstreamResults <- lapply(upstreamJoints, function(upstreamJoint) {
       upstreamArguments <- GetUpstreamFunArguments(node, upstreamJoint, myArgs, ellipsis)
-      do.call(upstreamJoint$fun, upstreamArguments)
+      res <- do.call(upstreamJoint$fun, upstreamArguments)
+      return (res)
     })
     if (length(upstreamJoints) == 1) upstreamResults <- upstreamResults[[1]]
 
@@ -115,15 +107,23 @@ SubstituteInflow <- function(node, funArgs, myArgs, ellipsis) {
 
 SubstituteInflowfun <- function(node, funArgs) {
   if ("@inflowfun" %in% node$dynamicVariables) {
-    upstream <- node$upstream
-    if (length(upstream) == 0) stop(paste0("Cannot find @inflowfun for ", node$name))
-    children <- lapply(upstream, function(child) child$fun)
-    if (length(upstream) == 1) children <- children[[1]]
-    funArgs[[which(funArgs == "@inflowfun")]] <- children
+    upstreamJoints <- GetConditionalUpstreamJoints(node$upstream, myArgs, ellipsis)
+    if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflowfun for ", node$name))
+    upstreamResults <- lapply(upstreamJoints, function(child) child$fun)
+    if (length(upstreamJoints) == 1) upstreamResults <- upstreamResults[[1]]
+    funArgs[[which(funArgs == "@inflowfun")]] <- upstreamResults
   }
   return (funArgs)
 }
 
+
+GetConditionalUpstreamJoints <- function(upstreamJoints, myArgs, ellipsis) {
+  upstreamJoints <- lapply(upstreamJoints, function(upstreamJoint) {
+    if(CheckCondition(upstreamJoint, myArgs, ellipsis)) return (upstreamJoint)
+    upstreamJoint <- upstreamJoint$Navigate(GetSourcesPath(upstreamJoint, path = "."))$upstream[[1]]
+    return (upstreamJoint)
+  })
+}
 
 SetFormals <- function(CallStep, node) {
 

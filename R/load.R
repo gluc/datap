@@ -297,19 +297,29 @@ GetRequiredParameters <- function(node) {
 
   if (length(availableParameters) == 0) return (list())
 
-  if (length(node$upstream) == 0) upstreamParameterNames <- vector(mode = "character", length = 0)
-  else {
+  if (length(node$upstream) == 0) {
+    upstreamParameterNames <- vector(mode = "character", length = 0)
+    upstreamConditions <- vector(mode = "character", length = 0)
+  } else {
     Get(node$upstream, function(j) names(j$parameters), simplify = FALSE) %>%
       unname %>%
       do.call(c, .) %>%
       unique ->
       upstreamParameterNames
+
+
+    Get(node$upstream, function(j) j$condition %>% substr(., 2, nchar(.)), simplify = FALSE) %>%
+      unname %>%
+      do.call(c, .) %>%
+      unique ->
+      upstreamConditions
   }
 
 
-  availableParameters[paste0('@', names(availableParameters)) %in% c(node$arguments, node$variables, node$condition)] %>% names -> myParameterNames
 
-  myParameterNames <- c(myParameterNames, upstreamParameterNames) %>% unique
+  availableParameters[paste0('@', names(availableParameters)) %in% c(node$arguments, node$variables)] %>% names -> myParameterNames
+
+  myParameterNames <- c(myParameterNames, upstreamParameterNames, upstreamConditions) %>% unique
 
   res <- availableParameters[names(availableParameters) %in% myParameterNames]
   return (res)

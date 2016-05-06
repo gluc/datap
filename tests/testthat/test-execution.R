@@ -1,5 +1,28 @@
 context("execution")
 
+
+test_that("basic", {
+  contextString <-"
+
+Tap:
+  type: tap
+  Pipe:
+    type: pipe
+    Processor:
+      type: processor
+      function: identity
+      arguments:
+        - 29
+  "
+  context <- Load(textConnection(contextString))
+  result <- context$Tap$tap()
+
+  expect_equal(result, 29)
+
+})
+
+
+
 test_that("parameter in tap", {
   contextString <-"
 Fabricated:
