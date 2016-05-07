@@ -278,16 +278,7 @@ GetUpstreamFunArguments <- function(node, upstreamJoint, myArgs, ellipsis) {
 }
 
 
-CheckCondition <- function(node, myArgs, ellipsis) {
-  if (length(node$condition) == 0) return (TRUE)
-  if (is.logical(node$condition)) return (node$condition)
-  if (node$condition %>% substr(1, 1) %>% identical("@")) {
-    vname <- node$condition %>% substr(2, nchar(node$condition))
-    if (vname %in% names(myArgs)) return ( myArgs[[vname]] )
-    if (vname %in% names(ellipsis)) return (ellipsis[[vname]])
-  }
-  stop(paste0("Cannot resolve condition '", node$condition, "' on node '", node$name, "'"))
-}
+
 
 # Finds the tap parameters that will be used on
 # this joint or on any of its upstream joints

@@ -187,5 +187,11 @@ Cache <- function(f, timeoutSec) {
 }
 
 
+ForgetCache <- function(f, inflow) {
+  forget(f)
+  return (inflow)
+}
+
+
 
 

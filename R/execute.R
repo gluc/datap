@@ -2,20 +2,20 @@
 
 #' @importFrom assertthat assert_that
 #' @importFrom data.tree Traverse Get GetAttribute
-ParseFun <- function(node) {
+ParseFun <- function(joint) {
 
 
-  funNme <- node$`function`
-  funArgs <- node$arguments
+  funNme <- joint$`function`
+  funArgs <- joint$arguments
   funArgsNms <- names(funArgs)
   xprs <- parse(text = "list(...)") #required to avoid warning in CHECK
 
-  #print (node$name)
-  #if (node$name == "Cache") browser()
+  #print (joint$name)
+  #if (joint$name == "Cache") browser()
   CallStep <- function() {
-    #if (node$name == "Cache") browser()
+    #if (joint$name == "Cache") browser()
     #browser()
-    #print (node$name)
+    #print (joint$name)
     #parse parameters
     parameterNames <- ls()
     myArgs <- lapply(parameterNames, function(x) get(x))
@@ -24,17 +24,17 @@ ParseFun <- function(node) {
     if ("..." %in% names(formals())) ellipsis <- eval(xprs)
     else ellipsis <- list()
 
-    funArgs <- SubstituteParameters(node, funArgs, myArgs, ellipsis)
-    inflow <- SubstituteInflow(node, funArgs, myArgs, ellipsis)
-    funArgs <- SubstituteInflowfun(node, inflow$funArgs)
+    funArgs <- SubstituteParameters(joint, funArgs, myArgs, ellipsis)
+    inflow <- SubstituteInflow(joint, funArgs, myArgs, ellipsis)
+    funArgs <- SubstituteInflowfun(joint, inflow$funArgs)
 
     res <- do.call.intrnl(funNme, funArgs)
-    if (node$type == "warning" || node$type == "error") {
+    if (joint$type == "warning" || joint$type == "error") {
       if (!res[[1]]) {
-        msg <- paste0("Joint '", node$name, "' raised ", node$type)
+        msg <- paste0("Joint '", joint$name, "' raised ", joint$type)
         if (length(res) > 1) mst <- paste0(msg,  ":", res[[2]])
-        if (node$type == "warning") warning(msg)
-        if (node$type == "error") stop(msg)
+        if (joint$type == "warning") warning(msg)
+        if (joint$type == "error") stop(msg)
       }
       return (inflow$upstreamResults)
     }
@@ -42,10 +42,10 @@ ParseFun <- function(node) {
 
   }
 
-  if (node$type == "factory") {
+  if (joint$type == "factory") {
     fun <- CallStep()
   } else {
-    CallStep <- SetFormals(CallStep, node)
+    CallStep <- SetFormals(CallStep, joint)
     fun <- CallStep
   }
 
@@ -58,13 +58,13 @@ ParseFun <- function(node) {
 # Replaces variables in funArgs that point to a tap parameter
 # with the respective argument
 #
-# @param node the node
+# @param joint the joint
 # @param funArgs the arguments of the processing step, i.e. the
-# function to be called inside the node$fun
-# @param myArgs the arguments of the node$fun (coming from the parameters
+# function to be called inside the joint$fun
+# @param myArgs the arguments of the joint$fun (coming from the parameters
 # declaration)
 # @param ellipsis the ellipsis arguments
-SubstituteParameters <- function(node, funArgs, myArgs, ellipsis) {
+SubstituteParameters <- function(joint, funArgs, myArgs, ellipsis) {
 
   if (!is.null(myArgs)) {
     for (i in 1:length(funArgs)) {
@@ -78,7 +78,7 @@ SubstituteParameters <- function(node, funArgs, myArgs, ellipsis) {
           funArgs[[i]] <- myArgs[[v]]
         }
       } else if (identical(v, '@context')) {
-        funArgs[[i]] <- node$root
+        funArgs[[i]] <- joint$root
       }
 
     }
@@ -87,13 +87,14 @@ SubstituteParameters <- function(node, funArgs, myArgs, ellipsis) {
 }
 
 
-SubstituteInflow <- function(node, funArgs, myArgs, ellipsis) {
-  if ("@inflow" %in% node$dynamicVariables) {
+SubstituteInflow <- function(joint, funArgs, myArgs, ellipsis) {
+  if ("@inflow" %in% joint$dynamicVariables) {
 
-    upstreamJoints <- GetConditionalUpstreamJoints(node$upstream, myArgs, ellipsis)
-    if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflow for ", node$name))
+    upstreamJoints <- GetConditionalUpstreamJoints(joint$upstream, myArgs, ellipsis)
+    if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflow for ", joint$name))
+
     upstreamResults <- lapply(upstreamJoints, function(upstreamJoint) {
-      upstreamArguments <- GetUpstreamFunArguments(node, upstreamJoint, myArgs, ellipsis)
+      upstreamArguments <- GetUpstreamFunArguments(joint, upstreamJoint, myArgs, ellipsis)
       res <- do.call(upstreamJoint$fun, upstreamArguments)
       return (res)
     })
@@ -105,10 +106,10 @@ SubstituteInflow <- function(node, funArgs, myArgs, ellipsis) {
 }
 
 
-SubstituteInflowfun <- function(node, funArgs) {
-  if ("@inflowfun" %in% node$dynamicVariables) {
-    upstreamJoints <- GetConditionalUpstreamJoints(node$upstream, myArgs, ellipsis)
-    if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflowfun for ", node$name))
+SubstituteInflowfun <- function(joint, funArgs) {
+  if ("@inflowfun" %in% joint$dynamicVariables) {
+    upstreamJoints <- GetConditionalUpstreamJoints(joint$upstream, myArgs, ellipsis)
+    if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflowfun for ", joint$name))
     upstreamResults <- lapply(upstreamJoints, function(child) child$fun)
     if (length(upstreamJoints) == 1) upstreamResults <- upstreamResults[[1]]
     funArgs[[which(funArgs == "@inflowfun")]] <- upstreamResults
@@ -118,17 +119,32 @@ SubstituteInflowfun <- function(node, funArgs) {
 
 
 GetConditionalUpstreamJoints <- function(upstreamJoints, myArgs, ellipsis) {
-  upstreamJoints <- lapply(upstreamJoints, function(upstreamJoint) {
+  upstreamJoints <- sapply(upstreamJoints, function(upstreamJoint) {
     if(CheckCondition(upstreamJoint, myArgs, ellipsis)) return (upstreamJoint)
-    upstreamJoint <- upstreamJoint$Navigate(GetSourcesPath(upstreamJoint, path = "."))$upstream[[1]]
-    return (upstreamJoint)
+    upstreamJoints <- upstreamJoint$Navigate(GetSourcesPath(upstreamJoint, path = "."))$upstream
+    return (GetConditionalUpstreamJoints(upstreamJoints, myArgs, ellipsis))
   })
 }
 
-SetFormals <- function(CallStep, node) {
 
-  if (length(node$parameters) > 0) {
-    parametersList <- node$parameters
+CheckCondition <- function(joint, myArgs, ellipsis) {
+  if (length(joint$condition) == 0) return (TRUE)
+  if (is.logical(joint$condition)) return (joint$condition)
+  if (joint$condition %>% substr(1, 1) %>% identical("@")) {
+    vname <- joint$condition %>% substr(2, nchar(joint$condition))
+    if (vname %in% names(myArgs)) return ( myArgs[[vname]] )
+    if (vname %in% names(ellipsis)) return (ellipsis[[vname]])
+  }
+  stop(paste0("Cannot resolve condition '", joint$condition, "' on joint '", joint$name, "'"))
+}
+
+
+
+
+SetFormals <- function(CallStep, joint) {
+
+  if (length(joint$parameters) > 0) {
+    parametersList <- joint$parameters
     GetParam <- function(name, defaultValue) {
       if (is.character(defaultValue)) defaultValue <- paste0("'", defaultValue, "'")
       if (is.null(defaultValue)) return (paste0(name, " ="))
