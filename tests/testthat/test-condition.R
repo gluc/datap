@@ -309,8 +309,13 @@ Tap:
   res3 <- context$Tap$tap(FALSE)
   expect_false(res3 == res1)
 
-  res3 <- context$Tap$tap(doForget = TRUE)
-  expect_false(res3 == res1)
+  context$Tap$tap(doForget = TRUE)
+
+  res5 <- context$Tap$tap()
+  expect_false(res5 == res1)
+
+  res6 <- context$Tap$tap()
+  expect_equal(res6, res5)
 
 
 })

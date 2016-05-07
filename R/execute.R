@@ -26,7 +26,7 @@ ParseFun <- function(joint) {
 
     funArgs <- SubstituteParameters(joint, funArgs, myArgs, ellipsis)
     inflow <- SubstituteInflow(joint, funArgs, myArgs, ellipsis)
-    funArgs <- SubstituteInflowfun(joint, inflow$funArgs)
+    funArgs <- SubstituteInflowfun(joint, inflow$funArgs, myArgs, ellipsis)
 
     res <- do.call.intrnl(funNme, funArgs)
     if (joint$type == "warning" || joint$type == "error") {
@@ -106,7 +106,7 @@ SubstituteInflow <- function(joint, funArgs, myArgs, ellipsis) {
 }
 
 
-SubstituteInflowfun <- function(joint, funArgs) {
+SubstituteInflowfun <- function(joint, funArgs, myArgs, ellipsis) {
   if ("@inflowfun" %in% joint$dynamicVariables) {
     upstreamJoints <- GetConditionalUpstreamJoints(joint$upstream, myArgs, ellipsis)
     if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflowfun for ", joint$name))

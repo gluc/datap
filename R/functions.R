@@ -186,10 +186,16 @@ Cache <- function(f, timeoutSec) {
   return ( memoise(f, ~timeout(timeoutSec)) )
 }
 
-
+#' Forget memoised/cached function
+#'
+#' @param f the function to cache
+#' @param inflow a value passed as a result
+#'
+#' @importFrom memoise forget
+#' @export
 ForgetCache <- function(f, inflow) {
   forget(f)
-  return (inflow)
+  invisible (inflow)
 }
 
 
