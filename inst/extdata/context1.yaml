@@ -4,6 +4,7 @@ modules:
   #they only serve as anchors for other taps
   NA handling: &NaHandling
     type: pipe
+    condition: '@doBackfill'
     Fill NAs:
       type: processor
       function: zoo::na.locf
@@ -18,8 +19,6 @@ modules:
         maxRatio: '@maxNaRatio'
   Quandle and Yahoo download: &QYPipe
     type: pipe
-    variables:
-      doNA: TRUE
     attributes:
       description: |
         This defines a reusable process
@@ -104,6 +103,7 @@ Closing Prices:
       parameters:
         #parameterName: defaultArgument
         dteRange: 1990-01-01/2010-01-01
+        doBackfill: TRUE
       variables:
         #variableName: value
         series: '@series'
@@ -121,6 +121,8 @@ Closing Prices:
         pipe: *QYPipe
   Single Stocks:
     type: structure
+    variables:
+      doBackfill: FALSE
     AAPL:
       type: tap
       attributes:

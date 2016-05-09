@@ -274,7 +274,7 @@ CheckSyntaxAllowedParents <- function(joint, allowedParents, mustHaveParent) {
 
 
 CheckSyntaxAllowedElements <- function(joint, allowedElements) {
-  for (element in joint$fields %>% extract(., . != "type")) {
+  for (element in joint$fields[joint$fields != "type"]) {
     AssertSyntax(element %in% allowedElements,
                joint,
                "allowedElements",

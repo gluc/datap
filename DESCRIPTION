@@ -19,10 +19,12 @@ Imports:
   xts,
   zoo,
   memoise,
-  timeDate
+  timeDate,
+  DiagrammeR
 Suggests:
   knitr,
-  Quandl
+  Quandl,
+  testthat
 Depends:
     R (>= 3.0)
 RoxygenNote: 5.0.1
