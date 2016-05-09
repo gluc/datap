@@ -177,7 +177,7 @@ SetNames <- function(x, names) {
 
 #' Cache / memoise a function for some time
 #'
-#' @param the joint whose upstream joint function should be cached
+#' @param joint the joint whose upstream joint function should be cached
 #' @param timeoutSec the number of seconds ot cache
 #'
 #' @importFrom memoise timeout memoise

@@ -7,9 +7,9 @@
 Cache(joint, timeoutSec)
 }
 \arguments{
-\item{timeoutSec}{the number of seconds ot cache}
+\item{joint}{the joint whose upstream joint function should be cached}
 
-\item{the}{joint whose upstream joint function should be cached}
+\item{timeoutSec}{the number of seconds ot cache}
 }
 \description{
 Cache / memoise a function for some time
