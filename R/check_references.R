@@ -83,14 +83,14 @@ CheckReferencesElements <- function(joint, elementName) {
 CheckReferencesElement <- function(joint, element, elementName) {
   if (length(element) == 0) return (TRUE)
   if (length(element) > 1) return (TRUE)
-  if (element %in% paste0("@", VARIABLE_RESERVED_NAMES_CONST)) return (TRUE)
+  if (element %in% paste0("$", VARIABLE_RESERVED_NAMES_CONST)) return (TRUE)
   if (IsMacro(element)) return (TRUE)
   if (!is.character(element)) return (TRUE)
-  if (!identical(substr(element, 1, 1), "@")) return (TRUE)
+  if (!identical(substr(element, 1, 1), "$")) return (TRUE)
   if (elementName == "condition") {
-    if (element %in% paste0("@", names(joint$Navigate(joint$downstream)$parameters))) return (TRUE)
+    if (element %in% paste0("$", names(joint$Navigate(joint$downstream)$parameters))) return (TRUE)
   } else {
-    if (element %in% paste0("@", names(joint$parameters))) return (TRUE)
+    if (element %in% paste0("$", names(joint$parameters))) return (TRUE)
   }
   return (FALSE)
 }

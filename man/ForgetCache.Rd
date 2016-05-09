@@ -4,10 +4,10 @@
 \alias{ForgetCache}
 \title{Forget memoised/cached function}
 \usage{
-ForgetCache(f, inflow)
+ForgetCache(joint, inflow)
 }
 \arguments{
-\item{f}{the function to cache}
+\item{joint}{the joint whose downstream joint function should be forgotten}
 
 \item{inflow}{a value passed as a result}
 }

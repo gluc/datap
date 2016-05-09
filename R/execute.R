@@ -26,7 +26,7 @@ ParseFun <- function(joint) {
 
     funArgs <- SubstituteParameters(joint, funArgs, myArgs, ellipsis)
     inflow <- SubstituteInflow(joint, funArgs, myArgs, ellipsis)
-    funArgs <- SubstituteInflowfun(joint, inflow$funArgs, myArgs, ellipsis)
+    funArgs <- inflow$funArgs
 
     res <- do.call.intrnl(funNme, funArgs)
     if (joint$type == "warning" || joint$type == "error") {
@@ -69,16 +69,18 @@ SubstituteParameters <- function(joint, funArgs, myArgs, ellipsis) {
   if (!is.null(myArgs)) {
     for (i in 1:length(funArgs)) {
       v <- funArgs[[i]]
-      if (identical(v, "@...")) {
+      if (identical(v, '$...')) {
         funArgs <- c(funArgs, ellipsis)
         funArgs <- funArgs[-i]
-      } else if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
+      } else if (!v %in% paste0('$', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), '$')) {
         v <- substr(v, 2, nchar(v))
         if (!is.null(myArgs[[v]])) {
           funArgs[[i]] <- myArgs[[v]]
         }
-      } else if (identical(v, '@context')) {
+      } else if (identical(v, '$context')) {
         funArgs[[i]] <- joint$root
+      } else if (identical(v, '$joint')) {
+        funArgs[[i]] <- joint
       }
 
     }
@@ -88,7 +90,7 @@ SubstituteParameters <- function(joint, funArgs, myArgs, ellipsis) {
 
 
 SubstituteInflow <- function(joint, funArgs, myArgs, ellipsis) {
-  if ("@inflow" %in% joint$dynamicVariables) {
+  if ("$inflow" %in% joint$dynamicVariables) {
 
     upstreamJoints <- GetConditionalUpstreamJoints(joint$upstream, myArgs, ellipsis)
     if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflow for ", joint$name))
@@ -100,22 +102,12 @@ SubstituteInflow <- function(joint, funArgs, myArgs, ellipsis) {
     })
     if (length(upstreamJoints) == 1) upstreamResults <- upstreamResults[[1]]
 
-    funArgs[[which(funArgs == "@inflow")]] <- upstreamResults
+    funArgs[[which(funArgs == "$inflow")]] <- upstreamResults
   } else upstreamResults <- NULL
   return (list(funArgs = funArgs, upstreamResults = upstreamResults))
 }
 
 
-SubstituteInflowfun <- function(joint, funArgs, myArgs, ellipsis) {
-  if ("@inflowfun" %in% joint$dynamicVariables) {
-    upstreamJoints <- GetConditionalUpstreamJoints(joint$upstream, myArgs, ellipsis)
-    if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflowfun for ", joint$name))
-    upstreamResults <- lapply(upstreamJoints, function(child) child$fun)
-    if (length(upstreamJoints) == 1) upstreamResults <- upstreamResults[[1]]
-    funArgs[[which(funArgs == "@inflowfun")]] <- upstreamResults
-  }
-  return (funArgs)
-}
 
 
 GetConditionalUpstreamJoints <- function(upstreamJoints, myArgs, ellipsis) {
@@ -130,7 +122,7 @@ GetConditionalUpstreamJoints <- function(upstreamJoints, myArgs, ellipsis) {
 CheckCondition <- function(joint, myArgs, ellipsis) {
   if (length(joint$condition) == 0) return (TRUE)
   if (is.logical(joint$condition)) return (joint$condition)
-  if (joint$condition %>% substr(1, 1) %>% identical("@")) {
+  if (joint$condition %>% substr(1, 1) %>% identical('$')) {
     vname <- joint$condition %>% substr(2, nchar(joint$condition))
     if (vname %in% names(myArgs)) return ( myArgs[[vname]] )
     if (vname %in% names(ellipsis)) return (ellipsis[[vname]])

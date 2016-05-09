@@ -16,8 +16,8 @@ SPX:
     dteRange: 1990-01-01/2010-01-01
   variables:
     #variableName: value
-    series: '@series'
-    maxNaRatio: '@maxNaRatioDefault'
+    series: '$series'
+    maxNaRatio: '$maxNaRatioDefault'
     yahooSymbol: '^GSPC'
     quandlCode: 'YAHOO/INDEX_GSPC'
 "
@@ -78,14 +78,14 @@ SPX:
       type: processor
       function: DoSomething
       arguments:
-        arg1: '@value1'
+        arg1: '$value1'
 "
 
   errorReport <- CheckReferences(textConnection(contextString))
 
   expect_true(errorReport$`.hasErrors`, "Expected error 3000")
   expect_equal(errorReport$errorCount, 1)
-  expect_equal(errorReport$SPX$pipe$source$`.errors`$references$`@value1`$code, "3000")
+  expect_equal(errorReport$SPX$pipe$source$`.errors`$references$`$value1`$code, "3000")
 
 })
 
@@ -100,16 +100,16 @@ SPX:
       type: processor
       function: DoSomething
       arguments:
-        arg1: '@value1'
-        arg2: '@value2'
+        arg1: '$value1'
+        arg2: '$value2'
 "
 
   errorReport <- CheckReferences(textConnection(contextString))
 
   expect_true(errorReport$`.hasErrors`, "Expected error 3000")
   expect_equal(errorReport$errorCount, 1)
-  expect_equal(errorReport$SPX$pipe$source$`.errors`$references$`@value1`$code, "3000")
-  expect_equal(errorReport$SPX$pipe$source$`.errors`$references$`@value2`$code, "3000")
+  expect_equal(errorReport$SPX$pipe$source$`.errors`$references$`$value1`$code, "3000")
+  expect_equal(errorReport$SPX$pipe$source$`.errors`$references$`$value2`$code, "3000")
 
 })
 
@@ -129,15 +129,15 @@ test_that("reference error report multiple error", {
         type: processor
         function: TTR::SMA
         arguments:
-          x: '@inflow'
-          'n': '@periods'
+          x: '$inflow'
+          'n': '$periods'
       Tap:
         type: processor
         function: Tap
         arguments:
-          context: '@context'
-          tapPath: '@tapPath'
-          ...: '@...'
+          context: '$context'
+          tapPath: '$tapPath'
+          ...: '$...'
 "
 
   errorReport <- CheckReferences(textConnection(contextString))

@@ -177,23 +177,29 @@ SetNames <- function(x, names) {
 
 #' Cache / memoise a function for some time
 #'
-#' @param f the function to cache
+#' @param the joint whose upstream joint function should be cached
 #' @param timeoutSec the number of seconds ot cache
 #'
 #' @importFrom memoise timeout memoise
 #' @export
-Cache <- function(f, timeoutSec) {
+Cache <- function(joint, timeoutSec) {
+  us <- joint$upstream
+  if (length(us) == 0) stop(paste0("Cannot cache ", joint$name, "! It has no upstream joint."))
+  if (length(us) > 1) stop(paste0("Cannot cache ", joint$name, "! It has ", length(us), " upstream joints."))
+  f <- us[[1]]$fun
   return ( memoise(f, ~timeout(timeoutSec)) )
 }
 
 #' Forget memoised/cached function
 #'
-#' @param f the function to cache
+#' @param joint the joint whose downstream joint function should be forgotten
 #' @param inflow a value passed as a result
 #'
 #' @importFrom memoise forget
 #' @export
-ForgetCache <- function(f, inflow) {
+ForgetCache <- function(joint, inflow) {
+  ds <- joint$Navigate(joint$downstream)
+  f <- ds$fun
   forget(f)
   invisible (inflow)
 }

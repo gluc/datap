@@ -14,14 +14,14 @@ Tap:
       type: processor
       function: prod
       arguments:
-        - '@inflow'
+        - $inflow
         - 2
-      condition: '@doProd'
+      condition: $doProd
     Sum:
       type: processor
       function: sum
       arguments:
-        - '@number'
+        - $number
         - 3
 "
 
@@ -57,21 +57,21 @@ Tap:
       type: processor
       function: subtract
       arguments:
-        - '@inflow'
+        - $inflow
         - 4
-      condition: '@doSubtract'
+      condition: $doSubtract
     Prod:
       type: processor
       function: prod
       arguments:
-        - '@inflow'
+        - $inflow
         - 2
-      condition: '@doProd'
+      condition: $doProd
     Sum:
       type: processor
       function: sum
       arguments:
-        - '@number'
+        - $number
         - 3
 "
 
@@ -98,24 +98,24 @@ Tap:
     type: pipe
     ConditionalPipe:
       type: pipe
-      condition: '@doPipe'
+      condition: $doPipe
       Subtract:
         type: processor
         function: subtract
         arguments:
-          - '@inflow'
+          - $inflow
           - 4
       Prod:
         type: processor
         function: prod
         arguments:
-          - '@inflow'
+          - $inflow
           - 2
     Sum:
       type: processor
       function: sum
       arguments:
-        - '@number'
+        - $number
         - 3
 "
 
@@ -150,14 +150,14 @@ Tap:
       type: warning
       function: equals
       arguments:
-        - '@inflow'
+        - $inflow
         - 4
-      condition: '@doWarn'
+      condition: $doWarn
     Sum:
       type: processor
       function: sum
       arguments:
-        - '@number'
+        - $number
         - 3
 "
 
@@ -187,9 +187,9 @@ Tap:
       type: factory
       function: Cache
       arguments:
-        f: '@inflowfun'
+        joint: $joint
         timeout: 3600
-      condition: '@doCache'
+      condition: $doCache
     Random:
       type: processor
       function: rnorm
@@ -226,9 +226,9 @@ TapToBeCalledByRef:
       type: factory
       function: Cache
       arguments:
-        f: '@inflowfun'
+        joint: $joint
         timeout: 3600
-      condition: '@doCache'
+      condition: $doCache
     Random:
       type: processor
       function: rnorm
@@ -244,9 +244,9 @@ TapRef:
     type: processor
     function: Tap
     arguments:
-      context: '@context'
+      context: $context
       tapPath: TapToBeCalledByRef
-      ...: '@...'
+      ...: $...
 "
 
   context <- Load(textConnection(contextString))
@@ -274,23 +274,21 @@ Tap:
   type: tap
   parameters:
     doCache: TRUE
-    doForget: FALSE
   Pipe:
     type: pipe
-    Forget:
-      type: processor
-      function: ForgetCache
-      arguments:
-        f: '@inflowfun'
-        inflow: '@inflow'
-      condition: '@doForget'
     Cache:
       type: factory
       function: Cache
       arguments:
-        f: '@inflowfun'
+        joint: $joint
         timeout: 3600
-      condition: '@doCache'
+      condition: $doCache
+    Forget:
+      type: processor
+      function: ForgetCache
+      arguments:
+        joint: $joint
+        inflow: $inflow
     Random:
       type: processor
       function: rnorm
@@ -309,13 +307,11 @@ Tap:
   res3 <- context$Tap$tap(FALSE)
   expect_false(res3 == res1)
 
-  context$Tap$tap(doForget = TRUE)
+  res4 <- context$Tap$tap(TRUE)
+  expect_false(res3 == res4)
 
   res5 <- context$Tap$tap()
-  expect_false(res5 == res1)
-
-  res6 <- context$Tap$tap()
-  expect_equal(res6, res5)
+  expect_equal(res5, res4)
 
 
 })
@@ -341,39 +337,39 @@ Tap:
       type: processor
       function: sum
       arguments:
-        - '@inflow'
+        - $inflow
         - 16
-      condition: '@doA'
+      condition: $doA
     B:
       type: processor
       function: sum
       arguments:
-        - '@inflow'
+        - $inflow
         - 8
-      condition: '@doBandE'
+      condition: $doBandE
     C:
       type: pipe
-      condition: '@doC'
+      condition: $doC
       D:
         type: processor
         function: sum
         arguments:
-          - '@inflow'
+          - $inflow
           - 4
-        condition: '@doD'
+        condition: $doD
       E:
         type: processor
         function: sum
         arguments:
-          - '@inflow'
+          - $inflow
           - 2
-        condition: '@doBandE'
+        condition: $doBandE
     F:
       type: processor
       function: identity
       arguments:
         - 1
-      condition: '@doF'
+      condition: $doF
 "
 
   context <- Load(textConnection(contextString))

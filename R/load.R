@@ -120,7 +120,7 @@ ParseTree <- function(tree) {
   #add dummy function to pipes
   tree$Do(function(node) {
     node$`function` <- 'identity'
-    node$arguments <- list(x = "@inflow")
+    node$arguments <- list(x = "$inflow")
   }, filterFun = function(node) identical(node$type, "pipe"))
 
   tree$Do(function(node) node$variables <- SubstituteVariables(node$parent, node$variables))
@@ -180,11 +180,11 @@ IsMacro <- function(v) {
 
 
 # Get variables that are dynamic, such
-# as @inflow, @inflowfun or @context. Assumes non-dynamic
+# as @inflow, @joint or @context. Assumes non-dynamic
 # variables have already been parsed.
 GetUnresolvedVariablesInFunArguments <- function(node) {
   funArgs <- node$arguments %>% unlist
-  funArgs <- funArgs[substr(funArgs, 1, 1) == "@"]
+  funArgs <- funArgs[substr(funArgs, 1, 1) == '$']
   return (funArgs)
 }
 
@@ -236,10 +236,10 @@ SubstituteVariables <- function(node, funArgs) {
   #if (identical(node$name, "C")) browser()
   if (length(funArgs) == 0) return (funArgs)
 
-  #parse variables (except @inflow, @inflowfun, etc)
+  #parse variables (except @inflow, @joint, etc)
   for (i in 1:length(funArgs)) {
     v <- funArgs[[i]]
-    if (!v %in% paste0('@', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), "@")) {
+    if (!v %in% paste0('$', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), '$')) {
       if (!IsMacro(v)) {
         v <- substr(v, 2, nchar(v))
         tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))
@@ -308,7 +308,7 @@ GetRequiredParameters <- function(node) {
 
 
 
-  availableParameters[paste0('@', names(availableParameters)) %in% c(node$arguments, node$variables)] %>% names -> myParameterNames
+  availableParameters[paste0('$', names(availableParameters)) %in% c(node$arguments, node$variables)] %>% names -> myParameterNames
 
   myParameterNames <- c(myParameterNames, upstreamParameterNames, upstreamConditions) %>% unique
 

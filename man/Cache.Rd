@@ -4,12 +4,12 @@
 \alias{Cache}
 \title{Cache / memoise a function for some time}
 \usage{
-Cache(f, timeoutSec)
+Cache(joint, timeoutSec)
 }
 \arguments{
-\item{f}{the function to cache}
-
 \item{timeoutSec}{the number of seconds ot cache}
+
+\item{the}{joint whose upstream joint function should be cached}
 }
 \description{
 Cache / memoise a function for some time

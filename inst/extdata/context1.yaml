@@ -4,19 +4,19 @@ modules:
   #they only serve as anchors for other taps
   NA handling: &NaHandling
     type: pipe
-    condition: '@doBackfill'
+    condition: $doBackfill
     Fill NAs:
       type: processor
       function: zoo::na.locf
       arguments:
-        object: '@inflow'
+        object: $inflow
     NA Ratio:
       type: warning
       function: NaRatio
       arguments:
-        timeseries: '@inflow'
-        variable: '@series'
-        maxRatio: '@maxNaRatio'
+        timeseries: $inflow
+        variable: $series
+        maxRatio: $maxNaRatio
   Quandle and Yahoo download: &QYPipe
     type: pipe
     attributes:
@@ -30,38 +30,38 @@ modules:
       type: factory
       function: Cache
       arguments:
-        f: '@inflowfun'
+        joint: $joint
         timeout: 3600
     GetSeries:
       type: processor
       function: magrittr::use_series
       arguments:
-        a: '@inflow'
-        b: '@series'
+        a: $inflow
+        b: $series
     NAs: *NaHandling
     Regularize:
         type: processor
         function: Regularize
         arguments:
-          xts: '@inflow'
+          xts: $inflow
     Combine:
       type: junction
       function: Combine
       arguments:
-        listofxts: '@inflow'
+        listofxts: $inflow
       Quandl:
         type: pipe
         MinLength:
           type: error
           function: MinLength
           arguments:
-            timeseries: '@inflow'
+            timeseries: $inflow
             minLength: 10
         DownloadQuandl:
           type: processor
           function: Quandl::Quandl
           arguments:
-            code: "@quandlCode"
+            code: $quandlCode
             type: xts
       Yahoo:
         type: pipe
@@ -69,19 +69,19 @@ modules:
           type: warning
           function: MinLength
           arguments:
-            timeseries: '@inflow'
+            timeseries: $inflow
             minLength: 10
         SetNames:
           type: processor
           function: SetNames
           arguments:
-            x: '@inflow'
+            x: $inflow
             names: [Open, High, Low, Close, Volume, 'Adjusted Close']
         DownloadYahoo:
           type: processor
           function: quantmod::getSymbols
           arguments:
-            Symbols: "@yahooSymbol"
+            Symbols: $yahooSymbol
             auto.assign: FALSE
 ## taps
 Closing Prices:
@@ -106,18 +106,18 @@ Closing Prices:
         doBackfill: TRUE
       variables:
         #variableName: value
-        series: '@series'
-        maxNaRatio: '@maxNaRatioDefault'
-        yahooSymbol: "^GSPC"
-        quandlCode: "YAHOO/INDEX_GSPC"
+        series: $series
+        maxNaRatio: $maxNaRatioDefault
+        yahooSymbol: '^GSPC'
+        quandlCode: 'YAHOO/INDEX_GSPC'
       Pipe:
         type: pipe
         DateRange:
           type: processor
           function: magrittr::extract
           arguments:
-            - '@inflow'
-            - '@dteRange'
+            - '$inflow'
+            - '$dteRange'
         pipe: *QYPipe
   Single Stocks:
     type: structure
@@ -130,8 +130,8 @@ Closing Prices:
         description: |
           Apple stock price
       variables:
-        series: '@series'
-        maxNaRatio: '@maxNaRatioDefault'
+        series: '$series'
+        maxNaRatio: '$maxNaRatioDefault'
         yahooSymbol: "AAPL"
         quandlCode: "YAHOO/AAPL"
       pipe: *QYPipe
@@ -140,7 +140,7 @@ Closing Prices:
       attributes:
         longname: "Microsoft"
       variables:
-        series: '@series'
+        series: '$series'
         maxNaRatio: 0.0
         yahooSymbol: "MSFT"
         quandlCode: "YAHOO/MSFT"
@@ -152,15 +152,15 @@ Closing Prices:
     Ones:
       type: tap
       parameters:
-        startDate: '@startDateDefault'
-        endDate: '@Today()'
+        startDate: '$startDateDefault'
+        endDate: '$Today()'
       GetOnes:
         type: processor
         function: Ones
         arguments:
-          startDate: '@startDate'
-          endDate: '@endDate'
-          colname: '@series'
+          startDate: '$startDate'
+          endDate: '$endDate'
+          colname: '$series'
 Technical Indicators:
   type: structure
   MATap:
@@ -180,15 +180,15 @@ Technical Indicators:
         type: processor
         function: TTR::SMA
         arguments:
-          x: '@inflow'
-          'n': '@periods'
+          x: $inflow
+          'n': $periods
       Tap:
         type: processor
         function: Tap
         arguments:
-          context: '@context'
-          tapPath: '@tapPath'
-          ...: '@...'
+          context: '$context'
+          tapPath: '$tapPath'
+          ...: '$...'
   MA:
     type: tap
     attributes:
@@ -205,7 +205,7 @@ Technical Indicators:
       type: processor
       function: TTR::SMA
       arguments:
-        x: '@series'
-        'n': '@periods'
+        x: $series
+        'n': $periods
 
 

@@ -43,14 +43,14 @@ modules:
       type: processor
       function: prod
       arguments:
-        - '@inflow'
-        - '@prod'
+        - $inflow
+        - $prod
     Sum:
       type: processor
       function: sum
       arguments:
-        - '@number'
-        - '@add'
+        - $number
+        - $add
 Tap:
   type: tap
   parameters:
@@ -75,7 +75,7 @@ Tap:
 })
 
 
-test_that("inflowfun", {
+test_that("joint", {
   contextString <- "
 RandomCache:
   type: tap
@@ -85,7 +85,7 @@ RandomCache:
       type: factory
       function: Cache
       arguments:
-        f: '@inflowfun'
+        joint: $joint
         timeout: 3600
     Random:
       type: processor

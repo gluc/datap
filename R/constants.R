@@ -1,5 +1,5 @@
 VARIABLE_RESERVED_NAMES_CONST <- c( 'inflow',
-                                    'inflowfun',
+                                    'joint',
                                     'context')
 
 JOINT_TYPES_FLOW <- c('pipe', 'junction')

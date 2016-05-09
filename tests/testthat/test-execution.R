@@ -32,14 +32,14 @@ Fabricated:
   Ones:
     type: tap
     parameters:
-      startDate: '@startDateDefault'
-      endDate: '@Today()'
+      startDate: '$startDateDefault'
+      endDate: '$Today()'
     GetOnes:
       type: processor
       function: Ones
       arguments:
-        startDate: '@startDate'
-        endDate: '@endDate'
+        startDate: '$startDate'
+        endDate: '$endDate'
         colname: Close
 
   "
@@ -64,12 +64,12 @@ A:
       type: processor
       function: sum
       arguments:
-        - '@inflow'
+        - '$inflow'
     Junction:
       type: junction
       function: as.numeric
       arguments:
-        - '@inflow'
+        - '$inflow'
       B:
         type: processor
         function: identity
@@ -103,12 +103,12 @@ A:
       type: processor
       function: sum
       arguments:
-        - '@inflow'
+        - '$inflow'
     Junction:
       type: junction
       function: as.numeric
       arguments:
-        - '@inflow'
+        - '$inflow'
       variables:
         secondArg: 4
       B:
@@ -120,7 +120,7 @@ A:
         type: processor
         function: identity
         arguments:
-          - '@secondArg'
+          - '$secondArg'
 "
 
 
