@@ -12,17 +12,11 @@ Tap:
     type: pipe
     Prod:
       type: processor
-      function: prod
-      arguments:
-        - $inflow
-        - 2
+      function: prod($inflow, 2)
       condition: $doProd
     Sum:
       type: processor
-      function: sum
-      arguments:
-        - $number
-        - 3
+      function: sum($number, 3)
 "
 
   context <- Load(textConnection(contextString))
@@ -55,24 +49,15 @@ Tap:
     type: pipe
     Subtract:
       type: processor
-      function: subtract
-      arguments:
-        - $inflow
-        - 4
+      function: subtract($inflow, 4)
       condition: $doSubtract
     Prod:
       type: processor
-      function: prod
-      arguments:
-        - $inflow
-        - 2
+      function: prod($inflow, 2)
       condition: $doProd
     Sum:
       type: processor
-      function: sum
-      arguments:
-        - $number
-        - 3
+      function: sum($number, 3)
 "
 
   context <- Load(textConnection(contextString))
@@ -101,22 +86,13 @@ Tap:
       condition: $doPipe
       Subtract:
         type: processor
-        function: subtract
-        arguments:
-          - $inflow
-          - 4
+        function: subtract($inflow, 4)
       Prod:
         type: processor
-        function: prod
-        arguments:
-          - $inflow
-          - 2
+        function: prod($inflow, 2)
     Sum:
       type: processor
-      function: sum
-      arguments:
-        - $number
-        - 3
+      function: sum($number, 3)
 "
 
   context <- Load(textConnection(contextString))
@@ -148,17 +124,11 @@ Tap:
     type: pipe
     Warn:
       type: warning
-      function: equals
-      arguments:
-        - $inflow
-        - 4
+      function: equals($inflow, 4)
       condition: $doWarn
     Sum:
       type: processor
-      function: sum
-      arguments:
-        - $number
-        - 3
+      function: sum($number, 3)
 "
 
   context <- Load(textConnection(contextString))
@@ -185,18 +155,11 @@ Tap:
     type: pipe
     Cache:
       type: factory
-      function: Cache
-      arguments:
-        joint: $joint
-        timeout: 3600
+      function: Cache(joint = $joint, timeout = 3600)
       condition: $doCache
     Random:
       type: processor
-      function: rnorm
-      arguments:
-        'n': 1
-        mean: 0
-        sd: 1
+      function: rnorm(n = 1, mean = 0, sd = 1)
 "
 
   context <- Load(textConnection(contextString))
@@ -224,29 +187,18 @@ TapToBeCalledByRef:
     type: pipe
     Cache:
       type: factory
-      function: Cache
-      arguments:
-        joint: $joint
-        timeout: 3600
+      function: Cache(joint = $joint, timeout = 3600)
       condition: $doCache
     Random:
       type: processor
-      function: rnorm
-      arguments:
-        'n': 1
-        mean: 0
-        sd: 1
+      function: rnorm(n = 1, mean = 0, sd = 1)
 TapRef:
   type: tap
   parameters:
     ...:
   TapCall:
     type: processor
-    function: Tap
-    arguments:
-      context: $context
-      tapPath: TapToBeCalledByRef
-      ...: $...
+    function: Tap(context = $context, tapPath = 'TapToBeCalledByRef', ... = $...)
 "
 
   context <- Load(textConnection(contextString))
@@ -278,24 +230,14 @@ Tap:
     type: pipe
     Cache:
       type: factory
-      function: Cache
-      arguments:
-        joint: $joint
-        timeout: 3600
+      function: Cache(joint = $joint, timeout = 3600, condition = $doCache)
       condition: $doCache
     Forget:
       type: processor
-      function: ForgetCache
-      arguments:
-        joint: $joint
-        inflow: $inflow
+      function: ForgetCache(joint = $joint, inflow = $inflow)
     Random:
       type: processor
-      function: rnorm
-      arguments:
-        'n': 1
-        mean: 0
-        sd: 1
+      function: rnorm(n = 1, mean = 0, sd = 1)
 "
 
   context <- Load(textConnection(contextString))
@@ -335,40 +277,26 @@ Tap:
     type: pipe
     A:
       type: processor
-      function: sum
-      arguments:
-        - $inflow
-        - 16
+      function: sum( $inflow, 16)
       condition: $doA
     B:
       type: processor
-      function: sum
-      arguments:
-        - $inflow
-        - 8
+      function: sum($inflow, 8)
       condition: $doBandE
     C:
       type: pipe
       condition: $doC
       D:
         type: processor
-        function: sum
-        arguments:
-          - $inflow
-          - 4
+        function: sum($inflow, 4)
         condition: $doD
       E:
         type: processor
-        function: sum
-        arguments:
-          - $inflow
-          - 2
+        function: sum($inflow, 2)
         condition: $doBandE
     F:
       type: processor
-      function: identity
-      arguments:
-        - 1
+      function: identity(1)
       condition: $doF
 "
 

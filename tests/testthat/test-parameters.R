@@ -15,13 +15,10 @@ Tap:
   Pipe:
     type: pipe
     variables:
-      v1: '$p3'
+      v1: $p3
     GetData:
       type: processor
-      function: GetData
-      arguments:
-        mp1: '$v1'
-        mp2: '$p1'
+      function: GetData(mp1 = $v1, mp2 = $p1)
 "
   context <- Load(textConnection(contextString))
 
@@ -51,15 +48,10 @@ Tap:
       f1v1: '$p4'
     F1:
       type: processor
-      function: DoF1
-      arguments:
-        f1p1: '$p2'
+      function: DoF1(f1p1 = $p2)
     F2:
       type: processor
-      function: DoF2
-      arguments:
-        f2p1: '$p1'
-        ...: '$...'
+      function: DoF2(f2p1 = $p1, ... = $...)
 "
   context <- Load(textConnection(contextString))
 

@@ -10,9 +10,7 @@ Tap:
     type: pipe
     Processor:
       type: processor
-      function: identity
-      arguments:
-        - 29
+      function: identity(29)
   "
   context <- Load(textConnection(contextString))
   result <- context$Tap$tap()
@@ -36,11 +34,7 @@ Fabricated:
       endDate: '$Today()'
     GetOnes:
       type: processor
-      function: Ones
-      arguments:
-        startDate: '$startDate'
-        endDate: '$endDate'
-        colname: Close
+      function: Ones(startDate = $startDate, endDate = $endDate, colname = 'Close')
 
   "
   context <- Load(textConnection(contextString))
@@ -62,24 +56,16 @@ A:
     type: pipe
     Sum:
       type: processor
-      function: sum
-      arguments:
-        - '$inflow'
+      function: sum($inflow)
     Junction:
       type: junction
-      function: as.numeric
-      arguments:
-        - '$inflow'
+      function: as.numeric($inflow)
       B:
         type: processor
-        function: identity
-        arguments:
-          - 2
+        function: identity(2)
       C:
         type: processor
-        function: identity
-        arguments:
-          - 3
+        function: identity(3)
 "
 
 
@@ -101,26 +87,18 @@ A:
     type: pipe
     Sum:
       type: processor
-      function: sum
-      arguments:
-        - '$inflow'
+      function: sum($inflow)
     Junction:
       type: junction
-      function: as.numeric
-      arguments:
-        - '$inflow'
+      function: as.numeric($inflow)
       variables:
         secondArg: 4
       B:
         type: processor
-        function: identity
-        arguments:
-          - 2
+        function: identity(2)
       C:
         type: processor
-        function: identity
-        arguments:
-          - '$secondArg'
+        function: identity($secondArg)
 "
 
 

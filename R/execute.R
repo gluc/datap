@@ -4,11 +4,10 @@
 #' @importFrom data.tree Traverse Get GetAttribute
 ParseFun <- function(joint) {
 
-
   funNme <- joint$`function`
   funArgs <- joint$arguments
-  funArgsNms <- names(funArgs)
-  xprs <- parse(text = "list(...)") #required to avoid warning in CHECK
+
+  xprs <- parse(text = "list(...)") #parse is required to avoid warning in CHECK
 
   #print (joint$name)
   #if (joint$name == "Cache") browser()
@@ -55,6 +54,7 @@ ParseFun <- function(joint) {
 
 
 
+
 # Replaces variables in funArgs that point to a tap parameter
 # with the respective argument
 #
@@ -72,14 +72,14 @@ SubstituteParameters <- function(joint, funArgs, myArgs, ellipsis) {
       if (identical(v, '$...')) {
         funArgs <- c(funArgs, ellipsis)
         funArgs <- funArgs[-i]
-      } else if (!v %in% paste0('$', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), '$')) {
+      } else if (!v %in% paste0('$', VARIABLE_RESERVED_NAMES_CONST) && is(v, 'variable')) {
         v <- substr(v, 2, nchar(v))
         if (!is.null(myArgs[[v]])) {
           funArgs[[i]] <- myArgs[[v]]
         }
-      } else if (identical(v, '$context')) {
+      } else if (v == '$context') {
         funArgs[[i]] <- joint$root
-      } else if (identical(v, '$joint')) {
+      } else if (v == '$joint') {
         funArgs[[i]] <- joint
       }
 
@@ -112,7 +112,9 @@ SubstituteInflow <- function(joint, funArgs, myArgs, ellipsis) {
 
 GetConditionalUpstreamJoints <- function(upstreamJoints, myArgs, ellipsis) {
   upstreamJoints <- sapply(upstreamJoints, function(upstreamJoint) {
-    if(CheckCondition(upstreamJoint, myArgs, ellipsis)) return (upstreamJoint)
+    isCondition <- CheckCondition(upstreamJoint, myArgs, ellipsis)
+    #if (!is.logical(isCondition)) browser()
+    if(isCondition) return (upstreamJoint)
     upstreamJoints <- upstreamJoint$Navigate(GetSourcesPath(upstreamJoint, path = "."))$upstream
     return (GetConditionalUpstreamJoints(upstreamJoints, myArgs, ellipsis))
   })

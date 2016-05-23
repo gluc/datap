@@ -120,7 +120,7 @@ GetSyntaxDefinition <- function(type = NULL) {
 
     res$junction <- list(
       type = "junction",
-      allowedElements = c("attributes", "variables", "function", "arguments"),
+      allowedElements = c("attributes", "variables", "function"),
       requiredElements = c("function"),
       allowedParents = c("pipe", "junction", "tap", "module"),
       mustHaveParent = TRUE,
@@ -130,7 +130,7 @@ GetSyntaxDefinition <- function(type = NULL) {
 
     res$processor <- list(
       type = "processor",
-      allowedElements = c("attributes", "function", "arguments", "condition"),
+      allowedElements = c("attributes", "function", "condition"),
       requiredElements = c("function"),
       allowedParents = c("pipe", "junction", "tap"),
       mustHaveParent = TRUE,
@@ -140,7 +140,7 @@ GetSyntaxDefinition <- function(type = NULL) {
 
     res$factory <- list(
       type = "factory",
-      allowedElements = c("attributes", "function", "arguments", "condition"),
+      allowedElements = c("attributes", "function", "condition"),
       requiredElements = c("function"),
       allowedParents = c("pipe"),
       mustHaveParent = TRUE,
@@ -150,7 +150,7 @@ GetSyntaxDefinition <- function(type = NULL) {
 
     res$warning <- list(
       type = "warning",
-      allowedElements = c("attributes", "function", "arguments", "condition"),
+      allowedElements = c("attributes", "function", "condition"),
       requiredElements = c("function"),
       allowedParents = c("pipe"),
       mustHaveParent = TRUE,
@@ -160,7 +160,7 @@ GetSyntaxDefinition <- function(type = NULL) {
 
     res$error <- list(
       type = "error",
-      allowedElements = c("attributes", "function", "arguments", "condition"),
+      allowedElements = c("attributes", "function", "condition"),
       requiredElements = c("function"),
       allowedParents = c("pipe"),
       mustHaveParent = TRUE,
@@ -214,8 +214,6 @@ CheckSyntaxJoint <- function(joint, syntaxDefinition) {
   CheckSyntaxAttributes(joint)
   CheckSyntaxParameters(joint)
   CheckSyntaxVariables(joint)
-  CheckSyntaxArguments(joint)
-
 
 }
 
@@ -371,18 +369,4 @@ CheckSyntaxFunction <- function(joint) {
 }
 
 
-CheckSyntaxArguments <- function(joint) {
-  args <- joint$arguments
-  if (!is.null(args)) {
-    if (joint$name == "Closing Prices") browser()
-    cond <- AssertSyntax(is.vector(args),
-                         joint,
-                         "arguments",
-                         "",
-                         NULL,
-                         "1900",
-                         "Arguments must be a list.")
 
-
-  }
-}

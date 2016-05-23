@@ -9,16 +9,16 @@ SPX:
     type: pipe
     source:
       type: processor
-      function: DoSomething
+      function: DoSomething()
     junction:
       type: junction
-      function: join
+      function: join()
       doA:
         type: processor
-        function: doA
+        function: doA()
       doB:
         type: processor
-        function: doB
+        function: doB()
 "
 
   context <- Load(textConnection(contextString))
@@ -40,18 +40,18 @@ SPX:
     type: pipe
     source:
       type: processor
-      function: DoSomething
+      function: DoSomething()
     pipe2:
       type: pipe
       doA:
         type: processor
-        function: doA
+        function: doA()
       doB:
         type: processor
-        function: doB
+        function: doB()
     final:
       type: processor
-      function: DoFinal
+      function: DoFinal()
 "
 
   context <- Load(textConnection(contextString))
@@ -71,21 +71,21 @@ SPX:
     type: pipe
     source:
       type: processor
-      function: DoSomething
+      function: DoSomething()
     junction:
       type: junction
-      function: DoJunction
+      function: DoJunction()
       pipe1.1:
         type: pipe
         doA:
           type: processor
-          function: doA
+          function: doA()
         doB:
           type: processor
-          function: doB
+          function: doB()
       doC:
         type: processor
-        function: doC
+        function: doC()
 
 
 "
@@ -108,30 +108,30 @@ SPX:
     type: pipe
     source:
       type: processor
-      function: DoSomething
+      function: DoSomething()
     junction:
       type: junction
-      function: DoJunction
+      function: DoJunction()
       pipe1.1:
         type: pipe
         doA:
           type: processor
-          function: doA
+          function: doA()
         doB:
           type: processor
-          function: doB
+          function: doB()
       doC:
         type: junction
-        function: doC
+        function: doC()
         doD:
           type: processor
-          function: doD
+          function: doD()
         doE:
           type: processor
-          function: doE
+          function: doE()
         doF:
           type: processor
-          function: doF
+          function: doF()
 
 
 "
@@ -157,14 +157,14 @@ Closing:
       type: tap
       X1:
         type: processor
-        function: DoIt
+        function: DoIt()
   New:
     type: structure
     X2:
       type: tap
       X2:
         type: processor
-        function: DoIt
+        function: DoIt()
 "
 
   context <- Load(textConnection(contextString))
@@ -186,27 +186,27 @@ Tap:
     type: pipe
     P1:
       type: processor
-      function: DoP1
+      function: DoP1()
     F2:
       type: factory
-      function: DoF2
+      function: DoF2()
     W3:
       type: warning
-      funnction: DoW3
+      funnction: DoW3()
     J4:
       type: junction
-      function: DoJ4
+      function: DoJ4()
       Pi2:
         type: pipe
         P2:
           type: processor
-          function: DoP2
+          function: DoP2()
         P3:
           type: processor
-          function: DoP3
+          function: DoP3()
       P4:
         type: processor
-        function: DoP4
+        function: DoP4()
 
 "
 

@@ -48,13 +48,9 @@ CreateRawTree <- function(lol) {
 
   rawTree <- FromListSimple(lol, nameName = NULL)
 
-  #only children of pipe and junction are true nodes
-  ReplaceNodesWithLol(rawTree, "arguments", lol)
   ReplaceNodesWithLol(rawTree, "variables", lol)
   ReplaceNodesWithLol(rawTree, "parameters", lol)
   ReplaceNodesWithLol(rawTree, "attributes", lol)
-
-
 
   return (rawTree)
 
@@ -117,11 +113,14 @@ ParseTree <- function(tree) {
   tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
 
 
+  tree$Do(ParseFunArgs, filterFun = function(joint) length(joint$`function`) > 0)
+
   #add dummy function to pipes
   tree$Do(function(node) {
     node$`function` <- 'identity'
     node$arguments <- list(x = "$inflow")
   }, filterFun = function(node) identical(node$type, "pipe"))
+
 
   tree$Do(function(node) node$variables <- SubstituteVariables(node$parent, node$variables))
   tree$Do(function(node) node$condition <- SubstituteVariables(node, node$condition))
@@ -149,6 +148,44 @@ ParseTree <- function(tree) {
   tree$TapNames <- function() names(tree$children)
 }
 
+
+
+ParseFunArgs <- function(joint) {
+  spl <- strsplit(joint$`function`, "(", fixed = TRUE)[[1]]
+  funNme <- spl[[1]]
+  funArgs <- strsplit(spl[[2]], ")", fixed = TRUE)[[1]]
+  if (nchar(funArgs) > 0) {
+    funArgs <- strsplit(funArgs, ",", fixed = TRUE)[[1]]
+    funArgs <- lapply(funArgs, function(x) strsplit(x, " *= *")[[1]])
+    funArgs <- lapply(funArgs, function(x) unname(sapply(x, stringr::str_trim)))
+    funArgs <- lapply(funArgs, GetArgument)
+  } else {
+    funArgs <- list()
+  }
+
+  joint$`function` <- funNme
+  joint$arguments <- funArgs
+}
+
+
+GetArgument <- function(argItem) {
+  if (length(argItem) == 1) nme <- NULL
+  else nme <- argItem[[1]]
+
+  if (length(argItem) == 1) arg <- argItem[[1]]
+  else arg <- argItem[[2]]
+
+  if (substr(arg, 1, 1) != "$") {
+    arg <- eval(parse(text = arg))
+  } else {
+    class(arg) <- c("variable", class(arg))
+  }
+
+  #names(arg) <- nme
+
+  return (arg)
+
+}
 
 
 ReplaceNodesWithLol <- function(rawTree, name, lol) {
@@ -239,7 +276,8 @@ SubstituteVariables <- function(node, funArgs) {
   #parse variables (except @inflow, @joint, etc)
   for (i in 1:length(funArgs)) {
     v <- funArgs[[i]]
-    if (!v %in% paste0('$', VARIABLE_RESERVED_NAMES_CONST) && identical(substr(v, 1, 1), '$')) {
+
+    if (!v %in% paste0('$', VARIABLE_RESERVED_NAMES_CONST) && (is(v, 'variable') || identical(substr(v, 1, 1), '$'))) {
       if (!IsMacro(v)) {
         v <- substr(v, 2, nchar(v))
         tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))

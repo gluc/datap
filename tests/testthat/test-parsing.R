@@ -7,7 +7,7 @@ SPX:
   type: tap
   Doit:
     type: processor
-    function: DoSomething
+    function: DoSomething()
 "
 
   errorReport <- CheckSyntax(textConnection(contextString))
@@ -23,7 +23,7 @@ test_that("type missing", {
 SPX:
   type: tap
   Doit:
-    function: DoSomething
+    function: DoSomething()
 "
 
   errorReport <- CheckSyntax(textConnection(contextString))
@@ -41,16 +41,10 @@ modules:
     type: pipe
     Prod:
       type: processor
-      function: prod
-      arguments:
-        - $inflow
-        - $prod
+      function: prod($inflow, $prod)
     Sum:
       type: processor
-      function: sum
-      arguments:
-        - $number
-        - $add
+      function: sum($number, $add)
 Tap:
   type: tap
   parameters:
@@ -83,15 +77,10 @@ RandomCache:
     type: pipe
     Cache:
       type: factory
-      function: Cache
-      arguments:
-        joint: $joint
-        timeout: 3600
+      function: Cache(joint = $joint, timeout = 3600)
     Random:
       type: processor
-      function: rnorm
-      arguments:
-        - 1
+      function: rnorm(1)
 "
 
   context <- Load(textConnection(contextString))

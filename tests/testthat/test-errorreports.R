@@ -1,4 +1,4 @@
-context("datap syntax")
+context("datap errorreports")
 
 test_that("syntax error report", {
   contextString <- "
@@ -38,7 +38,7 @@ SPX:
     type: pipe
     source:
       type: processor
-      function: DoSomething
+      function: DoSomething()
 "
 
   errorReport <- CheckSyntax(textConnection(contextString))
@@ -55,9 +55,7 @@ SPX:
     type: pipe
     source:
       type: processor
-      function: DoSomething
-      arguments:
-        arg1: 25
+      function: DoSomething(arg1 = 25)
 "
 
   errorReport <- CheckReferences(textConnection(contextString))
@@ -76,9 +74,7 @@ SPX:
     type: pipe
     source:
       type: processor
-      function: DoSomething
-      arguments:
-        arg1: '$value1'
+      function: DoSomething(arg1 = $value1)
 "
 
   errorReport <- CheckReferences(textConnection(contextString))
@@ -98,10 +94,7 @@ SPX:
     type: pipe
     source:
       type: processor
-      function: DoSomething
-      arguments:
-        arg1: '$value1'
-        arg2: '$value2'
+      function: DoSomething(arg1 = $value1, arg2 = $value2)
 "
 
   errorReport <- CheckReferences(textConnection(contextString))
@@ -127,17 +120,10 @@ test_that("reference error report multiple error", {
       type: pipe
       SMA:
         type: processor
-        function: TTR::SMA
-        arguments:
-          x: '$inflow'
-          'n': '$periods'
+        function: TTR::SMA(x = $inflow, n = $periods)
       Tap:
         type: processor
-        function: Tap
-        arguments:
-          context: '$context'
-          tapPath: '$tapPath'
-          ...: '$...'
+        function: Tap(context = $context, tapPath = $tapPath, ... = $...)
 "
 
   errorReport <- CheckReferences(textConnection(contextString))
@@ -157,19 +143,19 @@ SPX:
     type: pipe
     source:
       type: processor
-      function: DoSomething
+      function: DoSomething()
     junction:
       type: junction
-      function: join
+      function: join()
       doA:
         type: processor
-        function: doA
+        function: doA()
       doB:
         type: processor
-        function: doB
+        function: doB()
     illegal:
       type: processor
-      function: doIllegal
+      function: doIllegal()
 "
 
   errorReport <- CheckAggregation(textConnection(contextString))
@@ -191,37 +177,37 @@ SPX:
     type: pipe
     source:
       type: processor
-      function: DoSomething
+      function: DoSomething()
     pipe1:
       type: pipe
       doA:
         type: processor
-        function: doA
+        function: doA()
       doB:
         type: processor
-        function: doB
+        function: doB()
       pipe2:
         type: pipe
         doC:
           type: processor
-          function: doC
+          function: doC()
         junction:
           type: junction
-          function: doJunction
+          function: doJunction()
           pipe3:
             type: pipe
             doD:
               type: processor
-              function: doD
+              function: doD()
             doE:
               type: processor
-              function: doE
+              function: doE()
           doF:
             type: processor
-            function: doF
+            function: doF()
     illegal:
       type: processor
-      function: doIllegal
+      function: doIllegal()
 "
 
   errorReport <- CheckAggregation(textConnection(contextString))
