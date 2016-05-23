@@ -230,7 +230,7 @@ Tap:
     type: pipe
     Cache:
       type: factory
-      function: Cache(joint = $joint, timeout = 3600, condition = $doCache)
+      function: Cache(joint = $joint, timeout = 3600)
       condition: $doCache
     Forget:
       type: processor

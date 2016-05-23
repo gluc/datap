@@ -69,7 +69,7 @@ SubstituteParameters <- function(joint, funArgs, myArgs, ellipsis) {
   if (!is.null(myArgs)) {
     for (i in 1:length(funArgs)) {
       v <- funArgs[[i]]
-      if (identical(v, '$...')) {
+      if (is(v, 'variable') && identical(as.character(v), '$...')) {
         funArgs <- c(funArgs, ellipsis)
         funArgs <- funArgs[-i]
       } else if (!v %in% paste0('$', VARIABLE_RESERVED_NAMES_CONST) && is(v, 'variable')) {

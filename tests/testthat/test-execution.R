@@ -112,3 +112,27 @@ A:
 
 
 
+test_that("basic", {
+  contextString <-"
+
+Tap:
+  type: tap
+  parameters:
+    p1:
+    ...:
+  Processor:
+    type: processor
+    function: sum($p1, $...)
+  "
+  context <- Load(textConnection(contextString))
+  result <- context$Tap$tap(2, 3)
+
+  expect_equal(result, 5)
+
+
+  result <- context$Tap$tap(2, 3, 4)
+
+  expect_equal(result, 9)
+
+})
+
