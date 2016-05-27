@@ -7,16 +7,10 @@ modules:
     condition: $doBackfill
     Fill NAs:
       type: processor
-      function: zoo::na.locf
-      arguments:
-        object: $inflow
+      function: zoo::na.locf($inflow)
     NA Ratio:
       type: warning
-      function: NaRatio
-      arguments:
-        timeseries: $inflow
-        variable: $series
-        maxRatio: $maxNaRatio
+      function: NaRatio($infow, $series, $maxNaRatio)
   Quandle and Yahoo download: &QYPipe
     type: pipe
     attributes:
@@ -28,59 +22,36 @@ modules:
         more. Return value: an xts object
     Cache:
       type: factory
-      function:
-        name: Cache
-        arguments:
-          joint: $joint
-          timeout: 3600
+      function: Cache($joint, 3600)
     GetSeries:
       type: processor
       function: .magrittr::use_series(a = $inflow, b = $series)
     NAs: *NaHandling
     Regularize:
         type: processor
-        function: Regularize
-        arguments:
-          xts: $inflow
+        function: Regularize(xts = $inflow)
     Combine:
       type: junction
-      function: Combine
-      arguments:
-        listofxts: $inflow
+      function: Combine(listofxts = $inflow)
       Quandl:
         type: pipe
         MinLength:
           type: error
-          function: MinLength
-          arguments:
-            timeseries: $inflow
-            minLength: 10
+          function: MinLength(timeseries = $inflow, minLength = 10)
         DownloadQuandl:
           type: processor
-          function: Quandl::Quandl
-          arguments:
-            code: $quandlCode
-            type: xts
+          function: Quandl::Quandl(code = $quandlCode, type = 'xts')
       Yahoo:
         type: pipe
         MinLength:
           type: warning
-          function: MinLength
-          arguments:
-            timeseries: $inflow
-            minLength: 10
+          function: MinLength(timeseries = $inflow, minLength = 10)
         SetNames:
           type: processor
-          function: SetNames
-          arguments:
-            x: $inflow
-            names: [Open, High, Low, Close, Volume, 'Adjusted Close']
+          function: SetNames(x = $inflow, names = c('Open', 'High', 'Low', 'Close', 'Volume', 'Adjusted Close') )
         DownloadYahoo:
           type: processor
-          function: quantmod::getSymbols
-          arguments:
-            Symbols: $yahooSymbol
-            auto.assign: FALSE
+          function: quantmod::getSymbols(Symbols = $yahooSymbol, auto.assign = FALSE)
 ## taps
 Closing Prices:
   type: structure
@@ -112,10 +83,7 @@ Closing Prices:
         type: pipe
         DateRange:
           type: processor
-          function: magrittr::extract
-          arguments:
-            - '$inflow'
-            - '$dteRange'
+          function: magrittr::extract($inflow, $dteRange)
         pipe: *QYPipe
   Single Stocks:
     type: structure
@@ -154,11 +122,7 @@ Closing Prices:
         endDate: '$Today()'
       GetOnes:
         type: processor
-        function: Ones
-        arguments:
-          startDate: '$startDate'
-          endDate: '$endDate'
-          colname: '$series'
+        function: Ones(startDate = $startDate, endDate = $endDate, colname = $series)
 Technical Indicators:
   type: structure
   MATap:
@@ -176,17 +140,10 @@ Technical Indicators:
       type: pipe
       SMA:
         type: processor
-        function: TTR::SMA
-        arguments:
-          x: $inflow
-          'n': $periods
+        function: TTR::SMA(x = $inflow, n = $periods)
       Tap:
         type: processor
-        function: Tap
-        arguments:
-          context: '$context'
-          tapPath: '$tapPath'
-          ...: '$...'
+        function: Tap(context = $context, tapPath = $tapPath, $...)
   MA:
     type: tap
     attributes:
@@ -201,9 +158,5 @@ Technical Indicators:
       periods: 10
     Transform:
       type: processor
-      function: TTR::SMA
-      arguments:
-        x: $series
-        'n': $periods
-
+      function: TTR::SMA(x = $series, n = $periods)
 

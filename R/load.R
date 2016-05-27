@@ -113,7 +113,10 @@ ParseTree <- function(tree) {
   tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
 
 
-  tree$Do(ParseFunArgs, filterFun = function(joint) length(joint$`function`) > 0)
+  tree$Do(function(node) node$variables <- ParseFunction(node$variables))
+  tree$Do(function(node) node$condition <- ParseFunction(node$condition))
+  tree$Do(function(node) node$`function` <- ParseFunction(node$`function`))
+  #tree$Do(ParseFunArgs, filterFun = function(joint) length(joint$`function`) > 0)
 
   #add dummy function to pipes
   tree$Do(function(node) {
@@ -150,9 +153,20 @@ ParseTree <- function(tree) {
 
 
 
-ParseFunArgs <- function(joint) {
-  spl <- strsplit(joint$`function`, "(", fixed = TRUE)[[1]]
-  funNme <- spl[[1]]
+
+ParseFunOLD <- function(functionString) {
+  #return a function object
+  f <- list()
+  class(f) <- c("fun", class(f))
+
+  type <- substr(functionString, 1, 1)
+  if (type == ".") executionTime <- "tap"
+  else if (type == ":") executionTime <- "build"
+  else stop(paste0("unknown function marker", type))
+  f$executionTime <- executionTime
+
+  spl <- strsplit(functionString, "(", fixed = TRUE)[[1]]
+  funNme <- substr(spl[[1]], 2, nchar(spl[[1]]))
   funArgs <- strsplit(spl[[2]], ")", fixed = TRUE)[[1]]
   if (nchar(funArgs) > 0) {
     funArgs <- strsplit(funArgs, ",", fixed = TRUE)[[1]]
@@ -163,29 +177,14 @@ ParseFunArgs <- function(joint) {
     funArgs <- list()
   }
 
-  joint$`function` <- funNme
-  joint$arguments <- funArgs
-}
+  f$funName <- funNme
+  f$arguments <- funArgs
 
-
-GetArgument <- function(argItem) {
-  if (length(argItem) == 1) nme <- NULL
-  else nme <- argItem[[1]]
-
-  if (length(argItem) == 1) arg <- argItem[[1]]
-  else arg <- argItem[[2]]
-
-  if (substr(arg, 1, 1) != "$") {
-    arg <- eval(parse(text = arg))
-  } else {
-    class(arg) <- c("variable", class(arg))
-  }
-
-  #names(arg) <- nme
-
-  return (arg)
+  return (f)
 
 }
+
+
 
 
 ReplaceNodesWithLol <- function(rawTree, name, lol) {
@@ -272,7 +271,7 @@ GetSourcesPath <- function(joint, path = ".") {
 SubstituteVariables <- function(node, funArgs) {
   #if (identical(node$name, "C")) browser()
   if (length(funArgs) == 0) return (funArgs)
-
+  if (node$name == 'SetNames') browser()
   #parse variables (except @inflow, @joint, etc)
   for (i in 1:length(funArgs)) {
     v <- funArgs[[i]]
