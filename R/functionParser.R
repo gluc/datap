@@ -7,11 +7,10 @@ ParseExpression <- function(expressionString) {
   vecs <- Node$new("function",
                    originalExpressionString = expressionString)
 
-  expressionString <- gsub(" ", "", expressionString, fixed = TRUE)
-  vecs$expressionV <- strsplit(expressionString, "")[[1]]
+    vecs$expressionV <- strsplit(expressionString, "")[[1]]
 
-  vecs$pos <- matrix(FALSE, ncol = 8, nrow = length(vecs$expressionV))
-  colnames(vecs$pos) <- c("tapTimeFun", "buildTimeFun", "open", "close", "arg", "eq" ,"str", "var")
+  vecs$pos <- matrix(FALSE, ncol = 9, nrow = length(vecs$expressionV))
+  colnames(vecs$pos) <- c("tapTimeFun", "buildTimeFun", "open", "close", "arg", "eq" ,"str", "var", "ws")
   vecs$pos[, 'tapTimeFun'] <- (vecs$expressionV == ".")
   vecs$pos[, 'buildTimeFun'] <- (vecs$expressionV == ":")
   vecs$pos[, 'open'] <- (vecs$expressionV == "(")
@@ -20,6 +19,7 @@ ParseExpression <- function(expressionString) {
   vecs$pos[, 'eq'] <- (vecs$expressionV == "=")
   vecs$pos[, 'str'] <- (vecs$expressionV == "'" | vecs$expressionV == '"')
   vecs$pos[, 'var'] <- (vecs$expressionV == "$")
+  vecs$pos[, 'ws'] <- (vecs$expressionV == " ")
 
   .ParseExpression(vecs)
   return (vecs)
@@ -40,13 +40,14 @@ ParseExpression <- function(expressionString) {
   } else if (node$type == "variable") {
     node$variableName <- ParseVariableName(node, idx)
   } else if (node$type == "R") {
-    node$expression <- paste0(node$expressionV, collapse = "")
+    node$expression <- trimws(paste0(node$expressionV, collapse = ""))
   } else stop (paste0("Unkown node type ", node$type))
 
 }
 
 
 ParseArgument <- function(node, idx) {
+  while(node$pos[idx, 'ws']) idx <- idx + 1
   child <- node$AddChild(name = (node$count + 1))
   child$pos <- node$pos[idx:nrow(node$pos), , drop = FALSE]
   child$expressionV <- node$expressionV[idx:nrow(node$pos)]
@@ -56,22 +57,27 @@ ParseArgument <- function(node, idx) {
 
 
 ParseVariableName <- function(node, idx) {
-  return (paste0(node$expressionV[-(1:idx)], collapse = ""))
+  nme <- paste0(node$expressionV[-(1:idx)], collapse = "")
+  nme <- trimws(nme)
+  return (nme)
 }
 
 
 ParseFunction <- function(node, idx) {
+  while(node$pos[idx, 'ws']) idx <- idx + 1
   idx <- ParseFunExecutionTime(node, idx)
   idx <- ParseFunName(node, idx)
   repeat {
     argEndIdx <- ParseFindArgEndIdx(node, idx + 1)
-
+    while(node$pos[idx, 'ws']) idx <- idx + 1
     child <- node$AddChild(name = (node$count + 1))
     child$pos <- node$pos[(idx + 1):(argEndIdx - 1), , drop = FALSE]
     child$expressionV <- node$expressionV[(idx + 1):(argEndIdx - 1)]
     .ParseExpression(child)
-    if (argEndIdx == nrow(node$pos)) break
     idx <- argEndIdx
+    while(node$pos[idx, 'ws']) idx <- idx + 1
+    if (idx == nrow(node$pos) || (nrow(node$pos) > idx && all(node$pos[(idx + 1):nrow(node$pos), 'ws']))) break
+
   }
 }
 
@@ -100,6 +106,7 @@ Evaluate <- function(expressionTree, variablesList) {
 
 
 ParseFindType <- function(node, idx) {
+  while(node$pos[idx, 'ws']) idx <- idx + 1
   if (!node$isRoot && node$parent$type == "fun") return ("argument")
   if (any(node$pos[idx, c('tapTimeFun', 'buildTimeFun')])) return ("fun")
   if (node$pos[idx, 'var']) return("variable")
@@ -108,20 +115,23 @@ ParseFindType <- function(node, idx) {
 
 
 ParseFindArgumentName <- function(node) {
-  for (i in 1:length(node$expressionV)) {
+  idx <- 1
+  while(node$pos[idx, 'ws']) idx <- idx + 1
+  for (i in idx:length(node$expressionV)) {
     if (node$pos[i, 'eq']) {
-      nme <- paste0(node$expressionV[1:(i-1)], collapse = "")
-      node$argumentName <- nme
+      nme <- paste0(node$expressionV[idx:(i-1)], collapse = "")
+      node$argumentName <- trimws(nme)
       return (i + 1)
     }
-    if (any(node$pos[i, ])) return (1)
+    if (any(node$pos[i, c("tapTimeFun", "buildTimeFun", "open", "close", "arg", "eq" ,"str", "var") ])) return (idx)
   }
-  return (1)
+  return (idx)
 }
 
 
 
 ParseFindArgEndIdx <- function(vecs, idx) {
+  while(vecs$pos[idx, 'ws']) idx <- idx + 1
   str <- FALSE
   funLvl <- 1
   for (i in idx:nrow(vecs$pos)) {
@@ -139,13 +149,15 @@ ParseFindArgEndIdx <- function(vecs, idx) {
 }
 
 ParseFunExecutionTime <- function(vecs, idx) {
+  while(vecs$pos[idx, 'ws']) idx <- idx + 1
   if (vecs$pos[idx, 'tapTimeFun']) vecs$executionTime <- "tap"
   else if(vecs$pos[idx, 'buildTimeFun']) vecs$executionTime <- "build"
   else stop (paste0("Unknown function starting char '", vec$expressionV[idx]))
-  return (2)
+  return (idx + 1)
 }
 
 ParseFunName <- function(vecs, idx) {
+  while(vecs$pos[idx, 'ws']) idx <- idx + 1
   idxo <- which(vecs$pos[, 'open'])[1]
   vecs$funName <- paste0(vecs$expressionV[idx:(idxo-1)], collapse = "")
   return (idxo)

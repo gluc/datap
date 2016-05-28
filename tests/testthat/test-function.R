@@ -14,10 +14,37 @@ test_that("Variable parsing", {
 })
 
 
+test_that("Variable parsing ws", {
+
+  funString <- " $variable1 "
+
+  ex <- ParseExpression(funString)
+
+  expect_equal(class(ex), c("Node", "R6"))
+  expect_equal(ex$type, "variable")
+  expect_equal(datapR:::Evaluate(ex, list(variable0 = 1, variable1 = 2)), 2)
+})
+
+
 
 test_that("Function parsing", {
 
   funString <- ".identity(29)"
+
+  fun <- ParseExpression(funString)
+
+  expect_equal(class(fun), c("Node", "R6"))
+  expect_equal(fun$funName, "identity")
+  expect_equal(fun$count, 1)
+  expect_equal(fun$children[[1]]$children[[1]]$expression, '29')
+  expect_equal(fun$executionTime, "tap")
+  expect_equal(datapR:::Evaluate(fun, list()), 29)
+})
+
+
+test_that("Function parsing ws ", {
+
+  funString <- " .identity( 29 ) "
 
   fun <- ParseExpression(funString)
 
@@ -66,15 +93,15 @@ test_that("Function parsing string", {
 
 
 test_that("Function parsing string", {
-  str <- "'y = .identity(z = $p1)'"
-  funString <- paste0(".identity(x = ", str, ")")
+  str <- "y = .identity(z = $p1)"
+  funString <- paste0(".identity(x = '", str, "')")
 
   fun <- ParseExpression(funString)
   #ToDataFrameTree(fun, "type", "value", "level")
   expect_equal(class(fun), c("Node", "R6"))
   expect_equal(fun$funName, "identity")
   expect_equal(fun$count, 1)
-  expect_equal(fun$`1`$`1`$`1`$`1`$expression, str)
+  expect_equal(fun$`1`$`1`$expression, paste0("'", str, "'"))
   expect_equal(fun$children[[1]]$argumentName, "x")
   expect_equal(fun$executionTime, "tap")
   expect_equal(datapR:::Evaluate(fun, list(p1 = 25)), str)
@@ -85,7 +112,7 @@ test_that("Function parsing string", {
 
 test_that("Function parsing multi", {
 
-  funString <- ".sum(x = 29, y = 23, 3.2)"
+  funString <- ".sum(x = 29, y = 23 , 3.2)"
 
   fun <- ParseExpression(funString)
 
