@@ -2,6 +2,19 @@ context("function parsing")
 
 #devtools::test(filter = "function")
 
+
+test_that("single letter", {
+
+  funString <- "3"
+
+  ex <- ParseExpression(funString)
+
+  expect_equal(class(ex), c("Node", "R6"))
+  expect_equal(ex$type, "R")
+  expect_equal(datapR:::Evaluate(ex, list(variable0 = 1, variable1 = 2)), 3)
+})
+
+
 test_that("Variable parsing", {
 
   funString <- "$variable1"
@@ -30,6 +43,22 @@ test_that("Variable parsing ws", {
 test_that("Function parsing", {
 
   funString <- ".identity(29)"
+
+  fun <- ParseExpression(funString)
+
+  expect_equal(class(fun), c("Node", "R6"))
+  expect_equal(fun$funName, "identity")
+  expect_equal(fun$count, 1)
+  expect_equal(fun$children[[1]]$children[[1]]$expression, '29')
+  expect_equal(fun$executionTime, "tap")
+  expect_equal(datapR:::Evaluate(fun, list()), 29)
+})
+
+
+
+test_that("Function parsing default", {
+
+  funString <- "identity(29)"
 
   fun <- ParseExpression(funString)
 
@@ -205,7 +234,8 @@ test_that("Function parsing nested multi", {
   funString <- ".sum(x = 2, y = .c($p1, $p2), z = :c(2, 4))"
   fun <- ParseExpression(funString)
   expect_equal(fun$executionTime, "tap")
-  expect_equal(fun$`3`$`1`$executionTime, "build")
+  expect_equal(fun$`2`$executionTime, "tap")
+  expect_equal(fun$`3`$executionTime, "build")
   expect_equal(datapR:::Evaluate(fun, list(p1 = 4, p2 = 3)), 15)
 
 })

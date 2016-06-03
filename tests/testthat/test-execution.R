@@ -2,6 +2,26 @@ context("execution")
 
 
 
+test_that("GetVariableVal", {
+  contextString <- "
+
+Tap:
+  type: tap
+  variables:
+    x: 'a'
+    y: 3
+    z: :sum(3, 5)
+  Processor:
+    type: processor
+    function: identity(29)
+"
+
+  context <- Load(textConnection(contextString))
+
+})
+
+
+
 test_that("basic", {
   contextString <-"
 

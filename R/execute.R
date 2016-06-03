@@ -156,3 +156,16 @@ SetFormals <- function(CallStep, joint) {
   return (CallStep)
 }
 
+
+
+
+GetVariableValue <- function(node, name) {
+  if (node$isRoot) return (NULL)
+  if (!is.null(node$variablesE)) {
+    cand <- node$variablesE[name]
+    if (!is.null(cand)) return(cand)
+  }
+  return (GetVariableValue(node$parent, name))
+}
+
+

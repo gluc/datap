@@ -112,26 +112,15 @@ ParseTree <- function(tree) {
 
   tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
 
-
-  tree$Do(function(node) node$variables <- ParseFunction(node$variables))
-  tree$Do(function(node) node$condition <- ParseFunction(node$condition))
-  tree$Do(function(node) node$`function` <- ParseFunction(node$`function`))
-  #tree$Do(ParseFunArgs, filterFun = function(joint) length(joint$`function`) > 0)
-
   #add dummy function to pipes
-  tree$Do(function(node) {
-    node$`function` <- 'identity'
-    node$arguments <- list(x = "$inflow")
-  }, filterFun = function(node) identical(node$type, "pipe"))
+  tree$Do(function(node) node$`function` <- 'identity($inflow)', filterFun = function(node) identical(node$type, "pipe"))
 
+  #parse expressions
+  tree$Do(function(node) node$variablesE <- ParseExpressions(node$variables), filterFun = function(node) length(node$variables) > 0)
+  tree$Do(function(node) node$conditionE <- ParseExpression(node$condition), filterFun = function(node) length(node$condition) > 0)
+  tree$Do(function(node) node$functionE <- ParseExpression(node$`function`), filterFun = function(node) length(node$`function`) > 0)
 
-  tree$Do(function(node) node$variables <- SubstituteVariables(node$parent, node$variables))
-  tree$Do(function(node) node$condition <- SubstituteVariables(node, node$condition))
-  tree$Do(function(node) node$parameters <- SubstituteVariables(node, node$parameters), filterFun = function(node) identical(node$type, "tap"))
-  tree$Do(function(node) node$arguments <- SubstituteVariables(node, node$arguments))
-  tree$Do(fun = function(node) node$dynamicVariables <- GetUnresolvedVariablesInFunArguments(node))
-
-  #data.tree:::print.Node(context$FindNode("SPX"), prms = function(j) paste0(j$parameters, collapse = "|"))
+  tree$Do(EvaluateBuildTimeExpressions)
 
   tree %>%
     Traverse(traversal = function(node) node$upstream,
@@ -151,39 +140,18 @@ ParseTree <- function(tree) {
   tree$TapNames <- function() names(tree$children)
 }
 
-
-
-
-ParseFunOLD <- function(functionString) {
-  #return a function object
-  f <- list()
-  class(f) <- c("fun", class(f))
-
-  type <- substr(functionString, 1, 1)
-  if (type == ".") executionTime <- "tap"
-  else if (type == ":") executionTime <- "build"
-  else stop(paste0("unknown function marker", type))
-  f$executionTime <- executionTime
-
-  spl <- strsplit(functionString, "(", fixed = TRUE)[[1]]
-  funNme <- substr(spl[[1]], 2, nchar(spl[[1]]))
-  funArgs <- strsplit(spl[[2]], ")", fixed = TRUE)[[1]]
-  if (nchar(funArgs) > 0) {
-    funArgs <- strsplit(funArgs, ",", fixed = TRUE)[[1]]
-    funArgs <- lapply(funArgs, function(x) strsplit(x, " *= *")[[1]])
-    funArgs <- lapply(funArgs, function(x) unname(sapply(x, stringr::str_trim)))
-    funArgs <- lapply(funArgs, GetArgument)
-  } else {
-    funArgs <- list()
-  }
-
-  f$funName <- funNme
-  f$arguments <- funArgs
-
-  return (f)
-
+EvaluateBuildTimeExpressions <- function(node) {
+  if (!is.null(node$variablesE)) for (e in node$variablesE) EvaluateBuildTime(e, node)
+  if (!is.null(node$conditionE)) EvaluateBuildTime(node$conditionE, node)
+  if (!is.null(node$functionE)) EvaluateBuildTime(node$functionE, node)
 }
 
+ParseExpressions <- function(expressionsList) {
+  for (i in 1:length(expressionsList)) {
+    expressionsList[[i]] <- ParseExpression(expressionsList[[i]])
+  }
+  return (expressionsList)
+}
 
 
 

@@ -3,11 +3,11 @@
 
 #'@export
 ParseExpression <- function(expressionString) {
-
+  expressionString <- as.character(expressionString)
   vecs <- Node$new("function",
                    originalExpressionString = expressionString)
 
-    vecs$expressionV <- strsplit(expressionString, "")[[1]]
+  vecs$expressionV <- strsplit(expressionString, "")[[1]]
 
   vecs$pos <- matrix(FALSE, ncol = 9, nrow = length(vecs$expressionV))
   colnames(vecs$pos) <- c("tapTimeFun", "buildTimeFun", "open", "close", "arg", "eq" ,"str", "var", "ws")
@@ -32,7 +32,7 @@ ParseExpression <- function(expressionString) {
   #what is this?
   #function, argument, variable, R expression
   node$type <- ParseFindType(node, idx)
-
+  idx <- ParseExecutionTime(node, idx)
   if (node$type == "fun") {
     ParseFunction(node, idx)
   } else if (node$type == "argument") {
@@ -65,7 +65,6 @@ ParseVariableName <- function(node, idx) {
 
 ParseFunction <- function(node, idx) {
   while(node$pos[idx, 'ws']) idx <- idx + 1
-  idx <- ParseFunExecutionTime(node, idx)
   idx <- ParseFunName(node, idx)
   repeat {
     argEndIdx <- ParseFindArgEndIdx(node, idx + 1)
@@ -105,10 +104,47 @@ Evaluate <- function(expressionTree, variablesList) {
 }
 
 
+EvaluateBuildTime <- function(expressionTree, node) {
+  if (expressionTree$type == "R" && expressionTree$executionTime == "build") {
+    expressionTree$value <- eval(parse(text = expressionTree$expression))
+    expressionTree$type <- "value"
+  } else if (expressionTree$type == "variable"  && expressionTree$executionTime == "build") {
+    val <- GetVariableValue(node, expressionTree$variableName)
+    if (is.null(val)) stop (paste0("Variable $", expressionTree$variableName, " unknown!"))
+    if (val$type != "value") stop (paste0("Variable $", expressionTree$variableName, " cannot be resolved at build time!"))
+    expressionTree$value <- val$value
+    expressionTree$type <- "value"
+  } else if (expressionTree$type == "argument") {
+    EvaluateBuildTime(expressionTree$children[[1]], node)
+  } else if (expressionTree$type == "fun") {
+    Do(nodes = expressionTree$children, fun = EvaluateBuildTime, node)
+    if (expressionTree$executionTime == "build") {
+      if (!all(Get(expressionTree$children, "type") == "value")) stop (paste0("Some arguments of the function ", expressionTree$funName, " cannot be executed at build time."))
+      argList <- Get(expressionTree$children, simplify = FALSE, "value")
+      argListNames <- Get(expressionTree$children, function(node) if (is.null(node$argumentName)) return("") else return (node$argumentName), simplify = FALSE)
+      if (!all(argListNames == "")) names(argList) <- argListNames
+      else names(argList) <- NULL
+      res <- do.call(expressionTree$funName, argList)
+      expressionTree$type <- "value"
+      expressionTree$value <- res
+    }
+  }
+
+}
+
+
+
 ParseFindType <- function(node, idx) {
   while(node$pos[idx, 'ws']) idx <- idx + 1
   if (!node$isRoot && node$parent$type == "fun") return ("argument")
-  if (any(node$pos[idx, c('tapTimeFun', 'buildTimeFun')])) return ("fun")
+
+  #if (any(node$pos[idx, c('tapTimeFun', 'buildTimeFun')])) return ("fun")
+
+  for (i in idx:length(node$expressionV)) {
+    if (node$pos[i, 'open']) return ("fun")
+    if (any(node$pos[i, c("close", "arg", "eq" ,"str", "var") ])) break
+  }
+
   if (node$pos[idx, 'var']) return("variable")
   else return ("R")
 }
@@ -148,12 +184,21 @@ ParseFindArgEndIdx <- function(vecs, idx) {
   }
 }
 
-ParseFunExecutionTime <- function(vecs, idx) {
+ParseExecutionTime <- function(vecs, idx) {
   while(vecs$pos[idx, 'ws']) idx <- idx + 1
-  if (vecs$pos[idx, 'tapTimeFun']) vecs$executionTime <- "tap"
-  else if(vecs$pos[idx, 'buildTimeFun']) vecs$executionTime <- "build"
-  else stop (paste0("Unknown function starting char '", vec$expressionV[idx]))
-  return (idx + 1)
+  if(vecs$pos[idx, 'buildTimeFun']) {
+    vecs$executionTime <- "build"
+    idx <- idx + 1
+  } else if(vecs$pos[idx, 'tapTimeFun']) {
+    vecs$executionTime <- "tap"
+    idx <- idx + 1
+  } else {
+    #defaults
+    if (vecs$type == "fun") vecs$executionTime <- "tap"
+    else vecs$executionTime <- "build"
+  }
+
+  return (idx)
 }
 
 ParseFunName <- function(vecs, idx) {
