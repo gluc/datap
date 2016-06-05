@@ -9,10 +9,9 @@ ParseExpression <- function(expressionString) {
 
   vecs$expressionV <- strsplit(expressionString, "")[[1]]
 
-  vecs$pos <- matrix(FALSE, ncol = 9, nrow = length(vecs$expressionV))
-  colnames(vecs$pos) <- c("tapTimeFun", "buildTimeFun", "open", "close", "arg", "eq" ,"str", "var", "ws")
+  vecs$pos <- matrix(FALSE, ncol = 8, nrow = length(vecs$expressionV))
+  colnames(vecs$pos) <- c("tapTimeFun", "open", "close", "arg", "eq" ,"str", "var", "ws")
   vecs$pos[, 'tapTimeFun'] <- (vecs$expressionV == ".")
-  vecs$pos[, 'buildTimeFun'] <- (vecs$expressionV == ":")
   vecs$pos[, 'open'] <- (vecs$expressionV == "(")
   vecs$pos[, 'close'] <- (vecs$expressionV == ")")
   vecs$pos[, 'arg'] <- (vecs$expressionV == ",")
@@ -140,8 +139,6 @@ ParseFindType <- function(node, idx) {
   while(node$pos[idx, 'ws']) idx <- idx + 1
   if (!node$isRoot && node$parent$type == "fun") return ("argument")
 
-  #if (any(node$pos[idx, c('tapTimeFun', 'buildTimeFun')])) return ("fun")
-
   for (i in idx:length(node$expressionV)) {
     if (node$pos[i, 'open']) return ("fun")
     if (any(node$pos[i, c("close", "arg", "eq" ,"str", "var") ])) break
@@ -161,7 +158,7 @@ ParseFindArgumentName <- function(node) {
       node$argumentName <- trimws(nme)
       return (i + 1)
     }
-    if (any(node$pos[i, c("tapTimeFun", "buildTimeFun", "open", "close", "arg", "eq" ,"str", "var") ])) return (idx)
+    if (any(node$pos[i, c("tapTimeFun", "open", "close", "arg", "eq" ,"str", "var") ])) return (idx)
   }
   return (idx)
 }
@@ -190,16 +187,12 @@ ParseExecutionTime <- function(vecs, idx) {
   while(vecs$pos[idx, 'ws']) idx <- idx + 1
   if (vecs$type == "argument") {
     vecs$executionTime <- vecs$parent$executionTime
-  } else if (vecs$pos[idx, 'buildTimeFun']) {
-    vecs$executionTime <- "build"
-    idx <- idx + 1
   } else if(vecs$pos[idx, 'tapTimeFun']) {
     vecs$executionTime <- "tap"
     idx <- idx + 1
   } else {
-    #defaults
-    if (vecs$type == "fun") vecs$executionTime <- "tap"
-    else vecs$executionTime <- "build"
+    #defaults: as early as possible (aeap)
+    vecs$executionTime <- "aeap"
   }
 
   return (idx)

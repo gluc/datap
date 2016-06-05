@@ -66,7 +66,7 @@ test_that("Function parsing default", {
   expect_equal(fun$funName, "identity")
   expect_equal(fun$count, 1)
   expect_equal(fun$children[[1]]$children[[1]]$expression, '29')
-  expect_equal(fun$executionTime, "tap")
+  expect_equal(fun$executionTime, "aeap")
   expect_equal(datapR:::Evaluate(fun, list()), 29)
 })
 
@@ -231,11 +231,14 @@ test_that("Function nested", {
 
 test_that("Function parsing nested multi", {
 
-  funString <- ".sum(x = 2, y = .c($p1, $p2), z = :c(2, 4))"
+  funString <- ".sum(x = 2, y = .c($p1, $p2), z = c(2, 4))"
   fun <- ParseExpression(funString)
   expect_equal(fun$executionTime, "tap")
   expect_equal(fun$`2`$executionTime, "tap")
-  expect_equal(fun$`3`$executionTime, "build")
+  expect_equal(fun$`3`$executionTime, "tap")
+  expect_equal(fun$`2`$`1`$executionTime, "tap")
+  expect_equal(fun$`3`$`1`$executionTime, "aeap")
+
   expect_equal(datapR:::Evaluate(fun, list(p1 = 4, p2 = 3)), 15)
 
 })
