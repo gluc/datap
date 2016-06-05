@@ -132,7 +132,9 @@ EvaluateBuildTime <- function(expressionTree, node) {
 
 }
 
-
+GetVariablesInExpression <- function(expression) {
+  expression$Get(function(node) node$variableName, filterFun = function(node) node$type == "variable", simplify = FALSE)
+}
 
 ParseFindType <- function(node, idx) {
   while(node$pos[idx, 'ws']) idx <- idx + 1
@@ -145,7 +147,7 @@ ParseFindType <- function(node, idx) {
     if (any(node$pos[i, c("close", "arg", "eq" ,"str", "var") ])) break
   }
 
-  if (node$pos[idx, 'var']) return("variable")
+  if (node$pos[i, 'var']) return("variable")
   else return ("R")
 }
 
@@ -186,7 +188,9 @@ ParseFindArgEndIdx <- function(vecs, idx) {
 
 ParseExecutionTime <- function(vecs, idx) {
   while(vecs$pos[idx, 'ws']) idx <- idx + 1
-  if(vecs$pos[idx, 'buildTimeFun']) {
+  if (vecs$type == "argument") {
+    vecs$executionTime <- vecs$parent$executionTime
+  } else if (vecs$pos[idx, 'buildTimeFun']) {
     vecs$executionTime <- "build"
     idx <- idx + 1
   } else if(vecs$pos[idx, 'tapTimeFun']) {

@@ -113,7 +113,7 @@ ParseTree <- function(tree) {
   tree$Do(function(node) class(node) <- c("tap", class(node)), filterFun = function(x) identical(x$type, "tap"))
 
   #add dummy function to pipes
-  tree$Do(function(node) node$`function` <- 'identity($inflow)', filterFun = function(node) identical(node$type, "pipe"))
+  tree$Do(function(node) node$`function` <- 'identity(.$inflow)', filterFun = function(node) identical(node$type, "pipe"))
 
   #parse expressions
   tree$Do(function(node) node$variablesE <- ParseExpressions(node$variables), filterFun = function(node) length(node$variables) > 0)
@@ -183,14 +183,6 @@ IsMacro <- function(v) {
 }
 
 
-# Get variables that are dynamic, such
-# as @inflow, @joint or @context. Assumes non-dynamic
-# variables have already been parsed.
-GetUnresolvedVariablesInFunArguments <- function(node) {
-  funArgs <- node$arguments %>% unlist
-  funArgs <- funArgs[substr(funArgs, 1, 1) == '$']
-  return (funArgs)
-}
 
 
 
@@ -287,38 +279,36 @@ GetUpstreamFunArguments <- function(node, upstreamJoint, myArgs, ellipsis) {
 
 # Finds the tap parameters that will be used on
 # this joint or on any of its upstream joints
+# Assume that this has already been called upstream
+# We define as parameters all variables that are
+# not resolved
+# Store parameters in parameters list
 GetRequiredParameters <- function(node) {
 
-  availableParameters <- GetTap(node)$parameters
+  Get(node$upstream, function(j) names(j$parameters), simplify = FALSE) %>%
+    unname %>%
+    do.call(c, .) %>%
+    unique ->
+    upstreamParameterNames
 
-  if (length(availableParameters) == 0) return (list())
+  myParameterNames <- GetUnresolvedVariables(node)
 
-  if (length(node$upstream) == 0) {
-    upstreamParameterNames <- vector(mode = "character", length = 0)
-    upstreamConditions <- vector(mode = "character", length = 0)
-  } else {
-    Get(node$upstream, function(j) names(j$parameters), simplify = FALSE) %>%
-      unname %>%
-      do.call(c, .) %>%
-      unique ->
-      upstreamParameterNames
+  c(upstreamParameterNames, myParameterNames) %>% unique -> ResolveFlow
 
-
-    Get(node$upstream, function(j) j$condition %>% substr(., 2, nchar(.)), simplify = FALSE) %>%
-      unname %>%
-      do.call(c, .) %>%
-      unique ->
-      upstreamConditions
-  }
-
-
-
-  availableParameters[paste0('$', names(availableParameters)) %in% c(node$arguments, node$variables)] %>% names -> myParameterNames
-
-  myParameterNames <- c(myParameterNames, upstreamParameterNames, upstreamConditions) %>% unique
-
-  res <- availableParameters[names(availableParameters) %in% myParameterNames]
   return (res)
+
+
+}
+
+
+
+
+GetUnresolvedVariables <- function(node) {
+  variables <- lapply(node$variables, function(expression) GetVariablesInExpression(expression))
+  GetVariablesInExpression(node$condition) %>% c(variables) -> variables
+  GetVariablesInExpression(node$fun) %>% c(variables) -> variables
+
+  GetVariableValue(node, nme)
 }
 
 

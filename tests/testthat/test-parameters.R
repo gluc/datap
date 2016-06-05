@@ -7,15 +7,10 @@ test_that("parameter in tap", {
 
 Tap:
   type: tap
-  parameters:
-    p1: 10
-    p2: extra
-    p3:
-    p4: FALSE
   Pipe:
     type: pipe
     variables:
-      v1: $p3
+      v1: .$p3
     GetData:
       type: processor
       function: GetData(mp1 = $v1, mp2 = $p1)
@@ -36,12 +31,6 @@ test_that("parameter in tap", {
 
 Tap:
   type: tap
-  parameters:
-    p1: 10
-    p2: extra
-    p3:
-    p4: FALSE
-    ...:
   Pipe:
     type: pipe
     variables:
