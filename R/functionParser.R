@@ -81,44 +81,88 @@ ParseFunction <- function(node, idx) {
 
 
 Evaluate <- function(expressionTree, variablesList) {
+
+  expressionTree$Do(EvaluateNodeIfPossible, traversal = "post-order", variablesList = variablesList, executionTime = "tap" )
+
+  unresolvedVariables <- expressionTree$Get("variableName", filterFun = function(expr) expr$type == "variable")
+  if (length(unresolvedVariables) > 0) stop(paste0("Variables ", paste0(unresolvedVariables, collapse = ", "), " cannot be resolved!"))
+
+  if (expressionTree$type != "value") {
+    #this should only happen if aeap
+    stop("datap error 1001. Please contact the package maintainer.")
+  }
+
+  return (expressionTree$value)
+}
+
+
+# This should be called on tap time. The expression tree
+# is not changed.
+Evaluate <- function(expressionTree, variablesList) {
+
   if (expressionTree$type == "R") {
     value <- eval(parse(text = expressionTree$expression))
     return (value)
   }
-  if (expressionTree$type == "variable") {
+
+  else if (expressionTree$type == "variable") {
     if (!expressionTree$variableName %in% names(variablesList)) stop (paste0("Variable $", expressionTree$variableName, " unknown!"))
     return (variablesList[[expressionTree$variableName]])
   }
-  if (expressionTree$type == "argument") return (Evaluate(expressionTree$children[[1]], variablesList))
-  if (expressionTree$type == "fun") {
+
+  else if (expressionTree$type == "argument") return (Evaluate(expressionTree$children[[1]], variablesList))
+
+  else if (expressionTree$type == "fun") {
     argList <- Get(nodes = expressionTree$children, attribute = Evaluate, simplify = FALSE, variablesList)
     argListNames <- Get(expressionTree$children, function(node) if (is.null(node$argumentName)) return("") else return (node$argumentName), simplify = FALSE)
+
     if (!all(argListNames == "")) names(argList) <- argListNames
     else names(argList) <- NULL
+
     res <- do.call(expressionTree$funName, argList)
     return (res)
   }
+
+  else if (expressionTree$type == "value") {
+    return (expressionTree$value)
+  }
+
   stop (paste0("Unknown expression type ", expressionTree$type))
 
 }
 
+# This is called build time. Expressions are evaluated where possible
+# and variables are fetched from node and ancestors. This changes
+# the expression tree upon evaluation.
+EvaluateExpressionBuild <- function(expressionTree, node) {
+  expressionTree$Do(EvaluateNodeBuild, traversal = "post-order", node)
+}
 
-EvaluateBuildTime <- function(expressionTree, node) {
-  if (expressionTree$type == "R" && expressionTree$executionTime == "build") {
+EvaluateNodeBuild <- function(expressionTree, node) {
+  if (expressionTree$executionTime == "tap") return()
+  if (expressionTree$type == "R") {
     expressionTree$value <- eval(parse(text = expressionTree$expression))
     expressionTree$type <- "value"
-  } else if (expressionTree$type == "variable"  && expressionTree$executionTime == "build") {
+  } else if (expressionTree$type == "variable") {
     val <- GetVariableValue(node, expressionTree$variableName)
-    if (is.null(val)) stop (paste0("Variable $", expressionTree$variableName, " unknown!"))
-    if (val$type != "value") stop (paste0("Variable $", expressionTree$variableName, " cannot be resolved at build time!"))
-    expressionTree$value <- val$value
-    expressionTree$type <- "value"
+    if (!is.null(val)) {
+      expressionTree$value <- val
+      expressionTree$type <- "value"
+    }
   } else if (expressionTree$type == "argument") {
-    EvaluateBuildTime(expressionTree$children[[1]], node)
+    child <- expressionTree$children[[1]]
+    if (child$type == "value") {
+      expressionTree$value <- child$value
+      expressionTree$type <- "value"
+    }
   } else if (expressionTree$type == "fun") {
-    Do(nodes = expressionTree$children, fun = EvaluateBuildTime, node)
-    if (expressionTree$executionTime == "build") {
-      if (!all(Get(expressionTree$children, "type") == "value")) stop (paste0("Some arguments of the function ", expressionTree$funName, " cannot be executed at build time."))
+
+    Get(expressionTree$children, function(node) node$children[[1]]$type == "value") %>%
+      all ->
+      evaluatable
+
+    if (evaluatable) {
+
       argList <- Get(expressionTree$children, simplify = FALSE, "value")
       argListNames <- Get(expressionTree$children, function(node) if (is.null(node$argumentName)) return("") else return (node$argumentName), simplify = FALSE)
       if (!all(argListNames == "")) names(argList) <- argListNames

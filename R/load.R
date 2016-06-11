@@ -141,9 +141,9 @@ ParseTree <- function(tree) {
 }
 
 EvaluateBuildTimeExpressions <- function(node) {
-  if (!is.null(node$variablesE)) for (e in node$variablesE) EvaluateBuildTime(e, node)
-  if (!is.null(node$conditionE)) EvaluateBuildTime(node$conditionE, node)
-  if (!is.null(node$functionE)) EvaluateBuildTime(node$functionE, node)
+  if (!is.null(node$variablesE)) for (e in node$variablesE) EvaluateExpressionBuild(e, node)
+  if (!is.null(node$conditionE)) EvaluateExpressionBuild(node$conditionE, node)
+  if (!is.null(node$functionE)) EvaluateExpressionBuild(node$functionE, node)
 }
 
 ParseExpressions <- function(expressionsList) {

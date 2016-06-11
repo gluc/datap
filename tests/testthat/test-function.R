@@ -169,6 +169,7 @@ test_that("Function variable", {
   expect_equal(fun$count, 1)
   expect_equal(fun$children[[1]]$argumentName, "x")
   expect_equal(fun$executionTime, "tap")
+
   expect_equal(datapR:::Evaluate(fun, list(p1 = 'myval')), 'myval')
   expect_equal(datapR:::Evaluate(fun, list(p1 = 27)), 27)
 
@@ -240,6 +241,30 @@ test_that("Function parsing nested multi", {
   expect_equal(fun$`3`$`1`$executionTime, "aeap")
 
   expect_equal(datapR:::Evaluate(fun, list(p1 = 4, p2 = 3)), 15)
+
+})
+
+
+test_that("Function parsing nested multi build", {
+
+  funString <- ".sum(x = $v1, y = .c($p1, $p2), z = c($v2, 4))"
+  fun <- ParseExpression(funString)
+
+  node <- Node$new("test")
+  node$variablesE <- list(v2 = 3, v3 = 99)
+  child <- node$AddChild("child")
+  child$variablesE <- list(v1 = 2)
+  datapR:::EvaluateExpressionBuild(fun, child)
+
+  expect_equal(fun$`1`$`1`$type, "value")
+  expect_equal(fun$`1`$`1`$value, 2)
+
+  expect_equal(fun$`2`$`1`$type, "fun")
+
+  expect_equal(fun$`3`$`1`$type, "value")
+  expect_equal(fun$`3`$`1`$value, c(3, 4))
+
+  expect_equal(datapR:::Evaluate(fun, list(p1 = 4, p2 = 3)), 16)
 
 })
 
