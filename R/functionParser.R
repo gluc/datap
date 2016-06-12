@@ -68,10 +68,12 @@ ParseFunction <- function(node, idx) {
   repeat {
     argEndIdx <- ParseFindArgEndIdx(node, idx + 1)
     while(node$pos[idx, 'ws']) idx <- idx + 1
-    child <- node$AddChild(name = (node$count + 1))
-    child$pos <- node$pos[(idx + 1):(argEndIdx - 1), , drop = FALSE]
-    child$expressionV <- node$expressionV[(idx + 1):(argEndIdx - 1)]
-    .ParseExpression(child)
+    if (idx + 1 < argEndIdx) {
+      child <- node$AddChild(name = (node$count + 1))
+      child$pos <- node$pos[(idx + 1):(argEndIdx - 1), , drop = FALSE]
+      child$expressionV <- node$expressionV[(idx + 1):(argEndIdx - 1)]
+      .ParseExpression(child)
+    }
     idx <- argEndIdx
     while(node$pos[idx, 'ws']) idx <- idx + 1
     if (idx == nrow(node$pos) || (nrow(node$pos) > idx && all(node$pos[(idx + 1):nrow(node$pos), 'ws']))) break
@@ -119,6 +121,8 @@ Evaluate <- function(expressionTree, variablesList) {
     if (!all(argListNames == "")) names(argList) <- argListNames
     else names(argList) <- NULL
 
+    if (is.null(argList)) argList <- list()
+
     res <- do.call(expressionTree$funName, argList)
     return (res)
   }
@@ -143,21 +147,20 @@ EvaluateNodeBuild <- function(expressionTree, node) {
   if (expressionTree$type == "R") {
     expressionTree$value <- eval(parse(text = expressionTree$expression))
     expressionTree$type <- "value"
+    expressionTree$children <- list()
   } else if (expressionTree$type == "variable") {
-    val <- GetVariableValue(node, expressionTree$variableName)
+    val <- GetVariableValueBuild(node, expressionTree$variableName)
     if (!is.null(val)) {
-      expressionTree$value <- val
-      expressionTree$type <- "value"
+      val <- expressionTree$AddSiblingNode(Clone(val))
+      expressionTree$parent$RemoveChild(expressionTree$name)
+      val$name <- expressionTree$name
     }
   } else if (expressionTree$type == "argument") {
-    child <- expressionTree$children[[1]]
-    if (child$type == "value") {
-      expressionTree$value <- child$value
-      expressionTree$type <- "value"
-    }
+    #need arg because of name
+
   } else if (expressionTree$type == "fun") {
 
-    Get(expressionTree$children, function(node) node$children[[1]]$type == "value") %>%
+    Get(expressionTree$children, function(arg) arg$children[[1]]$type == "value") %>%
       all ->
       evaluatable
 
@@ -166,16 +169,38 @@ EvaluateNodeBuild <- function(expressionTree, node) {
       argList <- Get(expressionTree$children, simplify = FALSE, "value")
       argListNames <- Get(expressionTree$children, function(node) if (is.null(node$argumentName)) return("") else return (node$argumentName), simplify = FALSE)
       if (!all(argListNames == "")) names(argList) <- argListNames
+      if (is.null(argList)) argList <- list()
       else names(argList) <- NULL
       res <- do.call(expressionTree$funName, argList)
       expressionTree$type <- "value"
+      expressionTree$children <- list()
       expressionTree$value <- res
     }
   }
 
 }
 
+
+GetVariableValueBuild <- function(node, name) {
+
+  if (!is.null(node$variablesE)) {
+    cand <- node$variablesE[[name]]
+    if (!is.null(cand)) {
+      #res <- EvaluateExpressionBuild(cand, node = node)
+      #if (cand$type == "value") return (cand$value)
+      #else return (NULL)
+      return (cand)
+    }
+
+  }
+  if (node$isRoot) return (NULL)
+  return (GetVariableValueBuild(node$parent, name))
+}
+
+
+
 GetVariablesInExpression <- function(expression) {
+  if (length(expression) == 0) return (list())
   expression$Get(function(node) node$variableName, filterFun = function(node) node$type == "variable", simplify = FALSE)
 }
 

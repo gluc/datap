@@ -1,5 +1,7 @@
-context("parsing")
+context("parsing of tree")
 
+
+#devtools::test(filter = "parsing")
 
 test_that("type missing", {
   contextString <- "
@@ -7,13 +9,20 @@ SPX:
   type: tap
   Doit:
     type: processor
-    function: DoSomething()
+    function: .DoSomething()
 "
 
   errorReport <- CheckSyntax(textConnection(contextString))
   expect_true(!errorReport$`.hasErrors`, "No syntax errors expected")
 
+  context <- Load(textConnection(contextString))
+
+  expect_equal(context$SPX$parameters %>% length, 0)
+
+
 })
+
+
 
 
 
@@ -47,10 +56,6 @@ modules:
       function: sum($number, $add)
 Tap:
   type: tap
-  parameters:
-    number:
-    prod: 2
-    add: 3
   Pipe: *M1
 "
 

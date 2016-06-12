@@ -122,6 +122,7 @@ ParseTree <- function(tree) {
 
   tree$Do(EvaluateBuildTimeExpressions)
 
+  #set parameters, starting from source downstream
   tree %>%
     Traverse(traversal = function(node) node$upstream,
              filterFun = function(node)!(node$type %in% JOINT_TYPES_STRUCTURE)) %>%
@@ -129,8 +130,10 @@ ParseTree <- function(tree) {
     Do(function(node) node$parameters <- GetRequiredParameters(node))
 
 
+
   Traverse(tree,
            filterFun = function(node) !is.null(node$type) && node$type %in% JOINT_TYPES_FUN) -> traversal
+
   traversal %>% rev %>%
     Do(function(joint) joint$fun <- ParseFun(joint))
 
@@ -285,17 +288,17 @@ GetUpstreamFunArguments <- function(node, upstreamJoint, myArgs, ellipsis) {
 # Store parameters in parameters list
 GetRequiredParameters <- function(node) {
 
-  Get(node$upstream, function(j) names(j$parameters), simplify = FALSE) %>%
-    unname %>%
-    do.call(c, .) %>%
-    unique ->
-    upstreamParameterNames
-
   myParameterNames <- GetUnresolvedVariables(node)
 
-  c(upstreamParameterNames, myParameterNames) %>% unique -> ResolveFlow
+  if (!is.null(node$upstream)) {
+    Get(node$upstream, function(j) j$parameters, simplify = FALSE, nullAsNa = FALSE) %>%
+      do.call(c, .) %>%
+      c(myParameterNames) %>%
+      unique ->
+      myParameterNames
+  }
 
-  return (res)
+  return (myParameterNames)
 
 
 }
@@ -304,11 +307,11 @@ GetRequiredParameters <- function(node) {
 
 
 GetUnresolvedVariables <- function(node) {
-  variables <- lapply(node$variables, function(expression) GetVariablesInExpression(expression))
-  GetVariablesInExpression(node$condition) %>% c(variables) -> variables
-  GetVariablesInExpression(node$fun) %>% c(variables) -> variables
-
-  GetVariableValue(node, nme)
+  variables <- lapply(node$variablesE, function(expression) GetVariablesInExpression(expression))
+  GetVariablesInExpression(node$conditionE) %>% c(variables) -> variables
+  GetVariablesInExpression(node$functionE) %>% c(variables) -> variables
+  variables %>% unlist %>% unname %>% extract(., !. %in% VARIABLE_RESERVED_NAMES_CONST) %>% return
+  #GetVariableValue(node, nme)
 }
 
 

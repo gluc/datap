@@ -3,7 +3,21 @@ context("function parsing")
 #devtools::test(filter = "function")
 
 
-test_that("single letter", {
+test_that("dot no arg", {
+
+  funString <- "Sys.Date()"
+
+  ex <- ParseExpression(funString)
+
+  expect_equal(class(ex), c("Node", "R6"))
+  expect_equal(ex$type, "fun")
+  expect_equal(ex$funName, "Sys.Date")
+  expect_equal(ex$height, 1)
+  expect_is(datapR:::Evaluate(ex, list()), "Date")
+})
+
+
+test_that("single number", {
 
   funString <- "3"
 
@@ -11,6 +25,7 @@ test_that("single letter", {
 
   expect_equal(class(ex), c("Node", "R6"))
   expect_equal(ex$type, "R")
+
   expect_equal(datapR:::Evaluate(ex, list(variable0 = 1, variable1 = 2)), 3)
 })
 
@@ -245,26 +260,5 @@ test_that("Function parsing nested multi", {
 })
 
 
-test_that("Function parsing nested multi build", {
 
-  funString <- ".sum(x = $v1, y = .c($p1, $p2), z = c($v2, 4))"
-  fun <- ParseExpression(funString)
-
-  node <- Node$new("test")
-  node$variablesE <- list(v2 = 3, v3 = 99)
-  child <- node$AddChild("child")
-  child$variablesE <- list(v1 = 2)
-  datapR:::EvaluateExpressionBuild(fun, child)
-
-  expect_equal(fun$`1`$`1`$type, "value")
-  expect_equal(fun$`1`$`1`$value, 2)
-
-  expect_equal(fun$`2`$`1`$type, "fun")
-
-  expect_equal(fun$`3`$`1`$type, "value")
-  expect_equal(fun$`3`$`1`$value, c(3, 4))
-
-  expect_equal(datapR:::Evaluate(fun, list(p1 = 4, p2 = 3)), 16)
-
-})
 

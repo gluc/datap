@@ -10,17 +10,18 @@ Tap:
   Pipe:
     type: pipe
     variables:
-      v1: .$p3
+      v1: $p3
+      v2: 3
     GetData:
       type: processor
-      function: GetData(mp1 = $v1, mp2 = $p1)
+      function: GetData(mp1 = $v1, mp2 = $p1, mp3 = $v2)
 "
   context <- Load(textConnection(contextString))
 
   expect_equal(context$Tap$parameters %>% length, 2 )
 
-  expect_equal(context$Tap$parameters , list(p1 = 10, p3 = NULL) )
-  expect_equal(formals(context$Tap$tap), alist(p1 = 10, p3 = ) %>% as.pairlist())
+  expect_equal(context$Tap$parameters , c("p3", "p1") )
+  expect_equal(formals(context$Tap$tap), alist(p1 = , p3 = ) %>% as.pairlist())
 
 
 })
