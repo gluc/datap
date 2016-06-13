@@ -27,20 +27,6 @@ SPX:
 
 
 
-test_that("type missing", {
-  contextString <- "
-SPX:
-  type: tap
-  Doit:
-    function: DoSomething()
-"
-
-  errorReport <- CheckSyntax(textConnection(contextString))
-  expect_true(errorReport$`.hasErrors`, "Syntax error 2000 expected")
-
-})
-
-
 
 test_that("module", {
   contextString <- "

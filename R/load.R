@@ -266,16 +266,6 @@ SubstituteVariables <- function(node, funArgs) {
 }
 
 
-# Get a list of arguments, matching the upstream function's
-# parameters.
-GetUpstreamFunArguments <- function(node, upstreamJoint, myArgs, ellipsis) {
-  if ("..." %in% names(formals(upstreamJoint$fun))) {
-    childParameters <- c(ellipsis, myArgs[names(upstreamJoint$parameters)[names(upstreamJoint$parameters) != "..."]])
-  } else {
-    childParameters <- myArgs[names(upstreamJoint$parameters)]
-  }
-  return (childParameters)
-}
 
 
 

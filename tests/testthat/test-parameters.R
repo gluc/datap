@@ -21,7 +21,7 @@ Tap:
   expect_equal(context$Tap$parameters %>% length, 2 )
 
   expect_equal(context$Tap$parameters , c("p3", "p1") )
-  expect_equal(formals(context$Tap$tap), alist(p1 = , p3 = ) %>% as.pairlist())
+  expect_equal(formals(context$Tap$tap), alist(p3 = , p1 = ) %>% as.pairlist())
 
 
 })
@@ -35,26 +35,31 @@ Tap:
   Pipe:
     type: pipe
     variables:
-      f1v1: '$p4'
+      v1: $p4
     F1:
       type: processor
       function: DoF1(f1p1 = $p2)
     F2:
       type: processor
-      function: DoF2(f2p1 = $p1, ... = $...)
+      function: DoF2(f2p1 = $p1, $v1)
 "
   context <- Load(textConnection(contextString))
 
-  expect_equal(context$Tap$parameters %>% length, 4 )
+  expect_equal(context$Tap$parameters %>% length, 3 )
 
-  expect_equal(context$Tap$parameters , list(p1 = 10, p2 = "extra", p4 = FALSE, `...` = NULL) )
-  expect_equal(formals(context$Tap$tap), alist(p1 = 10, p2 = "extra", p4 = FALSE, ... =) %>% as.pairlist())
+  expect_equal(context$Tap$parameters , c("p1", "p4", "p2") )
+  expect_equal(formals(context$Tap$tap), alist(p1 = , p4 = , p2 = ) %>% as.pairlist())
 
-  expect_equal(context$Tap$Pipe$F1$parameters , list(p1 = 10, p2 = "extra", `...` = NULL) )
-  expect_equal(formals(context$Tap$Pipe$F1$fun), alist(p1 = 10, p2 = "extra", ... =) %>% as.pairlist())
 
-  expect_equal(context$Tap$Pipe$F2$parameters , list(p1 = 10, `...` = NULL) )
-  expect_equal(formals(context$Tap$Pipe$F2$fun), alist(p1 = 10, ... =) %>% as.pairlist())
+  expect_equal(context$Tap$Pipe$parameters , c("p1", "p4", "p2") )
+  expect_equal(formals(context$Tap$Pipe$fun), alist(p1 = , p4 = , p2 = ) %>% as.pairlist())
+
+  expect_equal(context$Tap$Pipe$F1$parameters , c("p1", "p4", "p2") )
+  expect_equal(formals(context$Tap$Pipe$F1$fun), alist(p1 = , p4 = , p2 = ) %>% as.pairlist())
+
+  expect_equal(context$Tap$Pipe$F2$parameters , c("p1", "p4") )
+  expect_equal(formals(context$Tap$Pipe$F2$fun), alist(p1 = , p4 = ) %>% as.pairlist())
+
 
 })
 
