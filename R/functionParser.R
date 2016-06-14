@@ -39,7 +39,8 @@ ParseExpression <- function(expressionString) {
   } else if (node$type == "variable") {
     node$variableName <- ParseVariableName(node, idx)
   } else if (node$type == "R") {
-    node$expression <- trimws(paste0(node$expressionV, collapse = ""))
+    node$expression <- paste0(node$expressionV, collapse = "") %>% trimws %>% type.convert(as.is = TRUE)
+    if (is.character(node$expression) && ! grepl("['\"].*['\"]$", node$expression, perl = TRUE)) node$expression <- paste0("'", node$expression, "'")
   } else stop (paste0("Unkown node type ", node$type))
 
 }
@@ -166,7 +167,7 @@ EvaluateNodeBuild <- function(expressionTree, node) {
 
     if (evaluatable) {
 
-      argList <- Get(expressionTree$children, simplify = FALSE, "value")
+      argList <- Get(expressionTree$children, function(e) e$children[[1]]$value, simplify = FALSE)
       argListNames <- Get(expressionTree$children, function(node) if (is.null(node$argumentName)) return("") else return (node$argumentName), simplify = FALSE)
       if (!all(argListNames == "")) names(argList) <- argListNames
       if (is.null(argList)) argList <- list()

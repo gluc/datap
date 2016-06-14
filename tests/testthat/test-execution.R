@@ -8,15 +8,20 @@ test_that("GetVariableVal", {
 Tap:
   type: tap
   variables:
-    x: 'a'
-    y: 3
-    z: :sum(3, 5)
+    x: a
+    'y': 3
+    z: sum(3, 5)
   Processor:
     type: processor
     function: identity(29)
 "
 
   context <- Load(textConnection(contextString))
+  context$Tap$variablesE %>% is.list %>% expect_true
+  context$Tap$variablesE %>% names %>% expect_equal(c("x", "y", "z"))
+  context$Tap$variablesE %>% lapply(function(e) e$value) %>% expect_equal(list(x = "a", y = 3, z = 8))
+
+  context$Tap$Processor$functionE$value %>% expect_equal(29)
 
 })
 
