@@ -35,10 +35,6 @@ Load <- function(con) {
 
   ParseTree(tree)
 
-  refErrors <- CheckReferencesTree(tree)
-  if (refErrors$`.hasErrors`) {
-    stop("Context contains unresolved references! Run CheckReferences(con) to get an error report.")
-  }
   return (tree)
 }
 
@@ -177,13 +173,6 @@ GetTap <- function(joint) {
   return (GetTap(joint$parent))
 }
 
-
-
-
-
-IsMacro <- function(v) {
-  identical(substr(v, nchar(v), nchar(v)), ")")
-}
 
 
 
