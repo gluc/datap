@@ -207,3 +207,5 @@ ForgetCache <- function(joint, inflow) {
 
 
 
+GetJointName <- function(joint) joint$name
+

@@ -83,20 +83,6 @@ ParseFunction <- function(node, idx) {
 }
 
 
-Evaluate <- function(expressionTree, variablesList) {
-
-  expressionTree$Do(EvaluateNodeIfPossible, traversal = "post-order", variablesList = variablesList, executionTime = "tap" )
-
-  unresolvedVariables <- expressionTree$Get("variableName", filterFun = function(expr) expr$type == "variable")
-  if (length(unresolvedVariables) > 0) stop(paste0("Variables ", paste0(unresolvedVariables, collapse = ", "), " cannot be resolved!"))
-
-  if (expressionTree$type != "value") {
-    #this should only happen if aeap
-    stop("datap error 1001. Please contact the package maintainer.")
-  }
-
-  return (expressionTree$value)
-}
 
 
 # This should be called on tap time. The expression tree
@@ -132,6 +118,7 @@ Evaluate <- function(expressionTree, variablesList) {
     return (expressionTree$value)
   }
 
+
   stop (paste0("Unknown expression type ", expressionTree$type))
 
 }
@@ -139,23 +126,25 @@ Evaluate <- function(expressionTree, variablesList) {
 # This is called build time. Expressions are evaluated where possible
 # and variables are fetched from node and ancestors. This changes
 # the expression tree upon evaluation.
-EvaluateExpressionBuild <- function(expressionTree, node) {
-  expressionTree$Do(EvaluateNodeBuild, traversal = "post-order", node)
+EvaluateExpressionBuild <- function(expressionTree, node, doConst) {
+  expressionTree$Do(EvaluateNodeBuild, traversal = "post-order", node, doConst)
 }
 
-EvaluateNodeBuild <- function(expressionTree, node) {
+EvaluateNodeBuild <- function(expressionTree, node, doConst) {
   if (expressionTree$executionTime == "tap") return()
   if (expressionTree$type == "R") {
     expressionTree$value <- eval(parse(text = expressionTree$expression))
     expressionTree$type <- "value"
     expressionTree$children <- list()
   } else if (expressionTree$type == "variable") {
-    if (ContainsVariable(expressionTree, "joint")) {
-      expressionTree$type = "value"
-      expressionTree$value = node
-    } else if (ContainsVariable(expressionTree, "context")) {
-      expressionTree$type = "value"
-      expressionTree$value = node$root
+    if (doConst) {
+      if (ContainsVariable(expressionTree, "joint")) {
+        expressionTree$type = "value"
+        expressionTree$value = node
+      } else if (ContainsVariable(expressionTree, "context")) {
+        expressionTree$type = "value"
+        expressionTree$value = node$root
+      }
     } else {
       val <- GetVariableValueBuild(node, expressionTree$variableName)
       if (!is.null(val)) {
@@ -181,9 +170,15 @@ EvaluateNodeBuild <- function(expressionTree, node) {
       if (is.null(argList)) argList <- list()
       else names(argList) <- NULL
       res <- do.call(expressionTree$funName, argList)
-      expressionTree$type <- "value"
-      expressionTree$children <- list()
-      expressionTree$value <- res
+      if (is.function(res)) {
+        expressionTree$type <- "fun"
+        expressionTree$children <- list()
+        expressionTree$funName <- res
+      } else {
+        expressionTree$type <- "value"
+        expressionTree$children <- list()
+        expressionTree$value <- res
+      }
     }
   }
 

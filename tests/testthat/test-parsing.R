@@ -60,9 +60,10 @@ Tap:
 })
 
 
+
+
 test_that("joint", {
 
-  GetJointName <- function(joint) joint$name
 
   contextString <- "
 Tap:

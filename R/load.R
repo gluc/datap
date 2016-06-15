@@ -116,7 +116,7 @@ ParseTree <- function(tree) {
   tree$Do(function(node) node$conditionE <- ParseExpression(node$condition), filterFun = function(node) length(node$condition) > 0)
   tree$Do(function(node) node$functionE <- ParseExpression(node$`function`), filterFun = function(node) length(node$`function`) > 0)
 
-  tree$Do(EvaluateBuildTimeExpressions)
+  tree$Do(EvaluateBuildTimeExpressions, doConst = FALSE)
 
   #set parameters, starting from source downstream
   tree %>%
@@ -133,16 +133,18 @@ ParseTree <- function(tree) {
   traversal %>% rev %>%
     Do(function(joint) joint$fun <- ParseFun(joint))
 
+  tree$Do(EvaluateBuildTimeExpressions, doConst = TRUE)
+
   tree$Do(fun = function(node) node$tap <- node$children[[1]]$fun,
           filterFun = function(node) identical(node$type, "tap"))
 
   tree$TapNames <- function() names(tree$children)
 }
 
-EvaluateBuildTimeExpressions <- function(node) {
-  if (!is.null(node$variablesE)) for (e in node$variablesE) EvaluateExpressionBuild(e, node)
-  if (!is.null(node$conditionE)) EvaluateExpressionBuild(node$conditionE, node)
-  if (!is.null(node$functionE)) EvaluateExpressionBuild(node$functionE, node)
+EvaluateBuildTimeExpressions <- function(node, doConst) {
+  if (!is.null(node$variablesE)) for (e in node$variablesE) EvaluateExpressionBuild(e, node, doConst)
+  if (!is.null(node$conditionE)) EvaluateExpressionBuild(node$conditionE, node, doConst)
+  if (!is.null(node$functionE)) EvaluateExpressionBuild(node$functionE, node, doConst)
 }
 
 ParseExpressions <- function(expressionsList) {
