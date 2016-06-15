@@ -46,18 +46,40 @@ Tap:
 "
 
   context <- Load(textConnection(contextString))
-  res <- context$Tap$tap(3)
+  res <- context$Tap$tap(number = 3, prod = 4, add = 0)
   expect_equal(res, 12)
 
   res <- context$Tap$tap(5, prod = 4, add = 1)
   expect_equal(res, 24)
 
-  expect_equal(formals(context$Tap$Pipe$Prod$fun), alist(number = , prod = 2, add = 3) %>% as.pairlist())
+  expect_equal(formals(context$Tap$Pipe$Prod$fun), alist(number = , add = , prod = ) %>% as.pairlist())
 
-  expect_equal(formals(context$Tap$Pipe$Sum$fun), alist(number = , add = 3) %>% as.pairlist())
+  expect_equal(formals(context$Tap$Pipe$Sum$fun), alist(number = , add = ) %>% as.pairlist())
 
 
 })
+
+
+test_that("joint", {
+
+  GetJointName <- function(joint) joint$name
+
+  contextString <- "
+Tap:
+  type: tap
+  Pro:
+    type: processor
+    function: GetJointName($joint)
+  "
+
+  context <- Load(textConnection(contextString))
+  r1 <- context$Tap$tap()
+
+  expect_equal(r1, "Pro")
+
+})
+
+
 
 
 test_that("joint", {
@@ -67,7 +89,7 @@ RandomCache:
   Pipe:
     type: pipe
     Cache:
-      type: factory
+      type: processor
       function: Cache(joint = $joint, timeout = 3600)
     Random:
       type: processor

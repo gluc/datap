@@ -150,11 +150,19 @@ EvaluateNodeBuild <- function(expressionTree, node) {
     expressionTree$type <- "value"
     expressionTree$children <- list()
   } else if (expressionTree$type == "variable") {
-    val <- GetVariableValueBuild(node, expressionTree$variableName)
-    if (!is.null(val)) {
-      val <- expressionTree$AddSiblingNode(Clone(val))
-      expressionTree$parent$RemoveChild(expressionTree$name)
-      val$name <- expressionTree$name
+    if (ContainsVariable(expressionTree, "joint")) {
+      expressionTree$type = "value"
+      expressionTree$value = node
+    } else if (ContainsVariable(expressionTree, "context")) {
+      expressionTree$type = "value"
+      expressionTree$value = node$root
+    } else {
+      val <- GetVariableValueBuild(node, expressionTree$variableName)
+      if (!is.null(val)) {
+        val <- expressionTree$AddSiblingNode(Clone(val))
+        expressionTree$parent$RemoveChild(expressionTree$name)
+        val$name <- expressionTree$name
+      }
     }
   } else if (expressionTree$type == "argument") {
     #need arg because of name
@@ -273,5 +281,10 @@ ParseFunName <- function(vecs, idx) {
   idxo <- which(vecs$pos[, 'open'])[1]
   vecs$funName <- paste0(vecs$expressionV[idx:(idxo-1)], collapse = "")
   return (idxo)
+}
+
+
+ContainsVariable <- function(expression, variableName) {
+  expression$Get(function(n) n$type == "variable" && n$variableName == variableName) %>% any
 }
 

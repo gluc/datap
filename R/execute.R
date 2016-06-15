@@ -20,7 +20,7 @@ ParseFun <- function(joint) {
 
     if (joint$type == "warning" ||
         joint$type == "error" ||
-        joint$functionE$Get(function(n) n$type == "variable" && n$variableName == "inflow") %>% any) {
+        ContainsVariable(joint$functionE, "inflow")) {
 
       inflow <- GetInflow(joint, myArgs)
 
@@ -48,6 +48,8 @@ ParseFun <- function(joint) {
 
   return (CallStep)
 }
+
+
 
 
 
