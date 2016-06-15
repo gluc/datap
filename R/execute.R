@@ -13,15 +13,18 @@ ParseFun <- function(joint) {
   CallStep <- function() {
     # CallStep is called by downstream, providing parameters
     # It's the R function representation of joint$functionE
-    myArgs <- lapply(joint$parameters, get)
+    #myArgs <- lapply(joint$parameters, get)
+    myArgs <- list()
+    for(mvar in joint$parameters) myArgs <- append(myArgs, get(mvar))
     names(myArgs) <- joint$parameters
 
     if (joint$type == "warning" ||
         joint$type == "error" ||
         joint$functionE$Get(function(n) n$type == "variable" && n$variableName == "inflow") %>% any) {
 
-      inflow <- GetInflow(joint)
-      c(myArgs, c(inflow = inflow)) -> myArgs
+      inflow <- GetInflow(joint, myArgs)
+
+      myArgs$inflow <- inflow
 
     }
 
