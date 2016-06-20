@@ -4,7 +4,7 @@
 #'@export
 ParseExpression <- function(expressionString) {
   expressionString <- as.character(expressionString)
-  vecs <- Node$new("function",
+  vecs <- Node$new("expression",
                    originalExpressionString = expressionString)
 
   vecs$expressionV <- strsplit(expressionString, "")[[1]]
@@ -24,60 +24,60 @@ ParseExpression <- function(expressionString) {
   return (vecs)
 }
 
-.ParseExpression <- function(node) {
+.ParseExpression <- function(expressionNode) {
   #is this named?
-  idx <- ParseFindArgumentName(node)
+  idx <- ParseFindArgumentName(expressionNode)
 
   #what is this?
   #function, argument, variable, R expression
-  node$type <- ParseFindType(node, idx)
-  idx <- ParseExecutionTime(node, idx)
-  if (node$type == "fun") {
-    ParseFunction(node, idx)
-  } else if (node$type == "argument") {
-    ParseArgument(node, idx)
-  } else if (node$type == "variable") {
-    node$variableName <- ParseVariableName(node, idx)
-  } else if (node$type == "R") {
-    node$expression <- paste0(node$expressionV, collapse = "") %>% trimws %>% type.convert(as.is = TRUE)
-    if (is.character(node$expression) && ! grepl("['\"].*['\"]$", node$expression, perl = TRUE)) node$expression <- paste0("'", node$expression, "'")
-  } else stop (paste0("Unkown node type ", node$type))
+  expressionNode$type <- ParseFindType(expressionNode, idx)
+  idx <- ParseExecutionTime(expressionNode, idx)
+  if (expressionNode$type == "fun") {
+    ParseFunction(expressionNode, idx)
+  } else if (expressionNode$type == "argument") {
+    ParseArgument(expressionNode, idx)
+  } else if (expressionNode$type == "variable") {
+    expressionNode$variableName <- ParseVariableName(expressionNode, idx)
+  } else if (expressionNode$type == "R") {
+    expressionNode$expression <- paste0(expressionNode$expressionV, collapse = "") %>% trimws %>% type.convert(as.is = TRUE)
+    if (is.character(expressionNode$expression) && ! grepl("['\"].*['\"]$", expressionNode$expression, perl = TRUE)) expressionNode$expression <- paste0("'", expressionNode$expression, "'")
+  } else stop (paste0("Unkown expressionNode type ", expressionNode$type))
 
 }
 
 
-ParseArgument <- function(node, idx) {
-  while(node$pos[idx, 'ws']) idx <- idx + 1
-  child <- node$AddChild(name = (node$count + 1))
-  child$pos <- node$pos[idx:nrow(node$pos), , drop = FALSE]
-  child$expressionV <- node$expressionV[idx:nrow(node$pos)]
+ParseArgument <- function(expressionNode, idx) {
+  while(expressionNode$pos[idx, 'ws']) idx <- idx + 1
+  child <- expressionNode$AddChild(name = (expressionNode$count + 1))
+  child$pos <- expressionNode$pos[idx:nrow(expressionNode$pos), , drop = FALSE]
+  child$expressionV <- expressionNode$expressionV[idx:nrow(expressionNode$pos)]
   .ParseExpression(child)
 
 }
 
 
-ParseVariableName <- function(node, idx) {
-  nme <- paste0(node$expressionV[-(1:idx)], collapse = "")
+ParseVariableName <- function(expressionNode, idx) {
+  nme <- paste0(expressionNode$expressionV[-(1:idx)], collapse = "")
   nme <- trimws(nme)
   return (nme)
 }
 
 
-ParseFunction <- function(node, idx) {
-  while(node$pos[idx, 'ws']) idx <- idx + 1
-  idx <- ParseFunName(node, idx)
+ParseFunction <- function(expressionNode, idx) {
+  while(expressionNode$pos[idx, 'ws']) idx <- idx + 1
+  idx <- ParseFunName(expressionNode, idx)
   repeat {
-    argEndIdx <- ParseFindArgEndIdx(node, idx + 1)
-    while(node$pos[idx, 'ws']) idx <- idx + 1
+    argEndIdx <- ParseFindArgEndIdx(expressionNode, idx + 1)
+    while(expressionNode$pos[idx, 'ws']) idx <- idx + 1
     if (idx + 1 < argEndIdx) {
-      child <- node$AddChild(name = (node$count + 1))
-      child$pos <- node$pos[(idx + 1):(argEndIdx - 1), , drop = FALSE]
-      child$expressionV <- node$expressionV[(idx + 1):(argEndIdx - 1)]
+      child <- expressionNode$AddChild(name = (expressionNode$count + 1))
+      child$pos <- expressionNode$pos[(idx + 1):(argEndIdx - 1), , drop = FALSE]
+      child$expressionV <- expressionNode$expressionV[(idx + 1):(argEndIdx - 1)]
       .ParseExpression(child)
     }
     idx <- argEndIdx
-    while(node$pos[idx, 'ws']) idx <- idx + 1
-    if (idx == nrow(node$pos) || (nrow(node$pos) > idx && all(node$pos[(idx + 1):nrow(node$pos), 'ws']))) break
+    while(expressionNode$pos[idx, 'ws']) idx <- idx + 1
+    if (idx == nrow(expressionNode$pos) || (nrow(expressionNode$pos) > idx && all(expressionNode$pos[(idx + 1):nrow(expressionNode$pos), 'ws']))) break
 
   }
 }
@@ -124,13 +124,13 @@ Evaluate <- function(expressionTree, variablesList) {
 }
 
 # This is called build time. Expressions are evaluated where possible
-# and variables are fetched from node and ancestors. This changes
+# and variables are fetched from joint and ancestors. This changes
 # the expression tree upon evaluation.
-EvaluateExpressionBuild <- function(expressionTree, node, doConst) {
-  expressionTree$Do(EvaluateNodeBuild, traversal = "post-order", node, doConst)
+EvaluateExpressionBuild <- function(expressionTree, joint, doConst) {
+  expressionTree$Do(EvaluateNodeBuild, traversal = "post-order", joint, doConst)
 }
 
-EvaluateNodeBuild <- function(expressionTree, node, doConst) {
+EvaluateNodeBuild <- function(expressionTree, joint, doConst) {
   if (expressionTree$executionTime == "tap") return()
   if (expressionTree$type == "R") {
     expressionTree$value <- eval(parse(text = expressionTree$expression))
@@ -140,17 +140,21 @@ EvaluateNodeBuild <- function(expressionTree, node, doConst) {
     if (doConst) {
       if (ContainsVariable(expressionTree, "joint")) {
         expressionTree$type = "value"
-        expressionTree$value = node
+        expressionTree$value = joint
       } else if (ContainsVariable(expressionTree, "context")) {
         expressionTree$type = "value"
-        expressionTree$value = node$root
+        expressionTree$value = joint$root
       }
     } else {
-      val <- GetVariableValueBuild(node, expressionTree$variableName)
+      val <- GetVariableValueBuild(joint, expressionTree$variableName)
       if (!is.null(val)) {
-        val <- expressionTree$AddSiblingNode(Clone(val))
-        expressionTree$parent$RemoveChild(expressionTree$name)
-        val$name <- expressionTree$name
+        if (expressionTree$isRoot) {
+
+        } else {
+          val <- expressionTree$AddSiblingNode(Clone(val))
+          expressionTree$parent$RemoveChild(expressionTree$name)
+          val$name <- expressionTree$name
+        }
       }
     }
   } else if (expressionTree$type == "argument") {
@@ -165,7 +169,7 @@ EvaluateNodeBuild <- function(expressionTree, node, doConst) {
     if (evaluatable) {
 
       argList <- Get(expressionTree$children, function(e) e$children[[1]]$value, simplify = FALSE)
-      argListNames <- Get(expressionTree$children, function(node) if (is.null(node$argumentName)) return("") else return (node$argumentName), simplify = FALSE)
+      argListNames <- Get(expressionTree$children, function(expressionNode) if (is.null(expressionNode$argumentName)) return("") else return (expressionNode$argumentName), simplify = FALSE)
       if (!all(argListNames == "")) names(argList) <- argListNames
       if (is.null(argList)) argList <- list()
       else names(argList) <- NULL
@@ -185,10 +189,10 @@ EvaluateNodeBuild <- function(expressionTree, node, doConst) {
 }
 
 
-GetVariableValueBuild <- function(node, name) {
+GetVariableValueBuild <- function(joint, name) {
 
-  if (!is.null(node$variablesE)) {
-    cand <- node$variablesE[[name]]
+  if (!is.null(joint$variablesE)) {
+    cand <- joint$variablesE[[name]]
     if (!is.null(cand)) {
       #res <- EvaluateExpressionBuild(cand, node = node)
       #if (cand$type == "value") return (cand$value)
@@ -197,8 +201,8 @@ GetVariableValueBuild <- function(node, name) {
     }
 
   }
-  if (node$isRoot) return (NULL)
-  return (GetVariableValueBuild(node$parent, name))
+  if (joint$isRoot) return (NULL)
+  return (GetVariableValueBuild(joint$parent, name))
 }
 
 
@@ -208,30 +212,30 @@ GetVariablesInExpression <- function(expression) {
   expression$Get(function(node) node$variableName, filterFun = function(node) node$type == "variable", simplify = FALSE)
 }
 
-ParseFindType <- function(node, idx) {
-  while(node$pos[idx, 'ws']) idx <- idx + 1
-  if (!node$isRoot && node$parent$type == "fun") return ("argument")
+ParseFindType <- function(expressionNode, idx) {
+  while(expressionNode$pos[idx, 'ws']) idx <- idx + 1
+  if (!expressionNode$isRoot && expressionNode$parent$type == "fun") return ("argument")
 
-  for (i in idx:length(node$expressionV)) {
-    if (node$pos[i, 'open']) return ("fun")
-    if (any(node$pos[i, c("close", "arg", "eq" ,"str", "var") ])) break
+  for (i in idx:length(expressionNode$expressionV)) {
+    if (expressionNode$pos[i, 'open']) return ("fun")
+    if (any(expressionNode$pos[i, c("close", "arg", "eq" ,"str", "var") ])) break
   }
 
-  if (node$pos[i, 'var']) return("variable")
+  if (expressionNode$pos[i, 'var']) return("variable")
   else return ("R")
 }
 
 
-ParseFindArgumentName <- function(node) {
+ParseFindArgumentName <- function(expressionNode) {
   idx <- 1
-  while(node$pos[idx, 'ws']) idx <- idx + 1
-  for (i in idx:length(node$expressionV)) {
-    if (node$pos[i, 'eq']) {
-      nme <- paste0(node$expressionV[idx:(i-1)], collapse = "")
-      node$argumentName <- trimws(nme)
+  while(expressionNode$pos[idx, 'ws']) idx <- idx + 1
+  for (i in idx:length(expressionNode$expressionV)) {
+    if (expressionNode$pos[i, 'eq']) {
+      nme <- paste0(expressionNode$expressionV[idx:(i-1)], collapse = "")
+      expressionNode$argumentName <- trimws(nme)
       return (i + 1)
     }
-    if (any(node$pos[i, c("tapTimeFun", "open", "close", "arg", "eq" ,"str", "var") ])) return (idx)
+    if (any(expressionNode$pos[i, c("tapTimeFun", "open", "close", "arg", "eq" ,"str", "var") ])) return (idx)
   }
   return (idx)
 }
