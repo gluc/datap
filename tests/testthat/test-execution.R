@@ -19,9 +19,9 @@ Tap:
   context <- Load(textConnection(contextString))
   context$Tap$variablesE %>% is.list %>% expect_true
   context$Tap$variablesE %>% names %>% expect_equal(c("x", "y", "z"))
-  context$Tap$variablesE %>% lapply(function(e) e$value) %>% expect_equal(list(x = "a", y = 3, z = 8))
+  context$Tap$variablesE %>% lapply(function(e) e$children[[1]]$value) %>% expect_equal(list(x = "a", y = 3, z = 8))
 
-  context$Tap$Processor$functionE$value %>% expect_equal(29)
+  context$Tap$Processor$functionE$children[[1]]$value %>% expect_equal(29)
 
 })
 

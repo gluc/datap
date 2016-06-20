@@ -95,12 +95,7 @@ GetConditionalUpstreamJoints <- function(upstreamJoints, myArgs) {
 
 CheckCondition <- function(joint, myArgs) {
   if (length(joint$condition) == 0) return (TRUE)
-  if (is.logical(joint$condition)) return (joint$condition)
-  if (joint$condition %>% substr(1, 1) %>% identical('$')) {
-    vname <- joint$condition %>% substr(2, nchar(joint$condition))
-    if (vname %in% names(myArgs)) return ( myArgs[[vname]] )
-  }
-  stop(paste0("Cannot resolve condition '", joint$condition, "' on joint '", joint$name, "'"))
+  Evaluate(joint$conditionE, myArgs)
 }
 
 

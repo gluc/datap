@@ -7,7 +7,7 @@ test_that("dot no arg", {
 
   funString <- "Sys.Date()"
 
-  ex <- ParseExpression(funString)
+  ex <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(ex), c("Node", "R6"))
   expect_equal(ex$type, "fun")
@@ -21,7 +21,7 @@ test_that("single number", {
 
   funString <- "3"
 
-  ex <- ParseExpression(funString)
+  ex <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(ex), c("Node", "R6"))
   expect_equal(ex$type, "R")
@@ -34,7 +34,7 @@ test_that("Variable parsing", {
 
   funString <- "$variable1"
 
-  ex <- ParseExpression(funString)
+  ex <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(ex), c("Node", "R6"))
   expect_equal(ex$type, "variable")
@@ -46,7 +46,7 @@ test_that("Variable parsing ws", {
 
   funString <- " $variable1 "
 
-  ex <- ParseExpression(funString)
+  ex <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(ex), c("Node", "R6"))
   expect_equal(ex$type, "variable")
@@ -59,7 +59,7 @@ test_that("Function parsing", {
 
   funString <- ".identity(29)"
 
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(fun), c("Node", "R6"))
   expect_equal(fun$funName, "identity")
@@ -75,7 +75,7 @@ test_that("Function parsing default", {
 
   funString <- "identity(29)"
 
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(fun), c("Node", "R6"))
   expect_equal(fun$funName, "identity")
@@ -90,7 +90,7 @@ test_that("Function parsing ws ", {
 
   funString <- " .identity( 29 ) "
 
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(fun), c("Node", "R6"))
   expect_equal(fun$funName, "identity")
@@ -105,7 +105,7 @@ test_that("Function parsing named param", {
 
   funString <- ".identity(x = 29)"
 
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(fun), c("Node", "R6"))
   expect_equal(fun$funName, "identity")
@@ -122,7 +122,7 @@ test_that("Function parsing string", {
 
   funString <- ".identity(x = '29')"
 
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(fun), c("Node", "R6"))
   expect_equal(fun$funName, "identity")
@@ -140,7 +140,7 @@ test_that("Function parsing string", {
   str <- "y = .identity(z = $p1)"
   funString <- paste0(".identity(x = '", str, "')")
 
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
   #ToDataFrameTree(fun, "type", "value", "level")
   expect_equal(class(fun), c("Node", "R6"))
   expect_equal(fun$funName, "identity")
@@ -158,7 +158,7 @@ test_that("Function parsing multi", {
 
   funString <- ".sum(x = 29, y = 23 , 3.2)"
 
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(fun), c("Node", "R6"))
   expect_equal(fun$funName, "sum")
@@ -177,7 +177,7 @@ test_that("Function variable", {
 
   funString <- ".identity(x = $p1)"
 
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(fun), c("Node", "R6"))
   expect_equal(fun$funName, "identity")
@@ -197,7 +197,7 @@ test_that("Function nested", {
 
   funString <- ".sum(x = .c(3, 4))"
 
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
 
   expect_equal(class(fun), c("Node", "R6"))
   expect_equal(fun$funName, "sum")
@@ -220,7 +220,7 @@ test_that("Function nested", {
 
   funString <- ".sum(x = .c(3, .prod(3,4)))"
 
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
 
   #ToDataFrameTree(fun, "type", "value", "level")
 
@@ -234,7 +234,7 @@ test_that("Function nested", {
 
   funString <- ".sum(x = .c(3, y =.prod(  $param , name = 4)))"
 
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
 
   #ToDataFrameTree(fun, "type", "value", "level")
 
@@ -248,7 +248,7 @@ test_that("Function nested", {
 test_that("Function parsing nested multi", {
 
   funString <- ".sum(x = 2, y = .c($p1, $p2), z = c(2, 4))"
-  fun <- ParseExpression(funString)
+  fun <- ParseExpression(funString)$children[[1]]
   expect_equal(fun$executionTime, "tap")
   expect_equal(fun$`2`$executionTime, "tap")
   expect_equal(fun$`3`$executionTime, "tap")
