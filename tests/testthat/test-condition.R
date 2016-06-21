@@ -154,12 +154,12 @@ Tap:
   Pipe:
     type: pipe
     Cache:
-      type: factory
+      type: processor
       function: Cache(joint = $joint, timeout = 3600)
       condition: $doCache
     Random:
       type: processor
-      function: rnorm(n = 1, mean = 0, sd = 1)
+      function: .rnorm(n = 1, mean = 0, sd = 1)
 "
 
   context <- Load(textConnection(contextString))
@@ -186,33 +186,25 @@ TapToBeCalledByRef:
   Pipe:
     type: pipe
     Cache:
-      type: factory
+      type: processor
       function: Cache(joint = $joint, timeout = 3600)
       condition: $doCache
     Random:
       type: processor
-      function: rnorm(n = 1, mean = 0, sd = 1)
+      function: .rnorm(n = 1, mean = 0, sd = 1)
 TapRef:
   type: tap
-  parameters:
-    ...:
   TapCall:
     type: processor
-    function: Tap(context = $context, tapPath = 'TapToBeCalledByRef', ... = $...)
+    function: .Tap(context = $context, tapPath = 'TapToBeCalledByRef', doCache = FALSE)
 "
 
   context <- Load(textConnection(contextString))
 
   r1 <- context$TapRef$tap()
   r2 <- context$TapRef$tap()
-  r3 <- context$TapRef$tap(TRUE)
-  r4 <- context$TapRef$tap(FALSE)
-  r5 <- context$TapRef$tap(TRUE)
 
-  expect_equal(r2, r1)
-  expect_equal(r3, r1)
-  expect_equal(r5, r1)
-  expect_false(r1 == r4)
+  expect_false(r2 == r1)
 
 })
 
@@ -229,7 +221,7 @@ Tap:
   Pipe:
     type: pipe
     Cache:
-      type: factory
+      type: processor
       function: Cache(joint = $joint, timeout = 3600)
       condition: $doCache
     Forget:
@@ -237,7 +229,7 @@ Tap:
       function: ForgetCache(joint = $joint, inflow = $inflow)
     Random:
       type: processor
-      function: rnorm(n = 1, mean = 0, sd = 1)
+      function: .rnorm(n = 1, mean = 0, sd = 1)
 "
 
   context <- Load(textConnection(contextString))

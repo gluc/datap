@@ -15,8 +15,8 @@ ParseFun <- function(joint) {
     # It's the R function representation of joint$functionE
     #myArgs <- lapply(joint$parameters, get)
     myArgs <- list()
-    for(mvar in joint$parameters) myArgs <- append(myArgs, get(mvar))
-    names(myArgs) <- joint$parameters
+    for(mvar in names(joint$parameters)) myArgs <- append(myArgs, get(mvar))
+    names(myArgs) <- names(joint$parameters)
 
     if (joint$type == "warning" ||
         joint$type == "error" ||
@@ -55,7 +55,13 @@ ParseFun <- function(joint) {
 
 GetFormals <- function(joint) {
   joint$parameters %>%
-    lapply(function(i) paste(i, "= ")) %>%
+    names %>%
+    lapply(function(name) {
+      prm <- joint$parameters[[name]]
+      defaultArg <- ""
+      if (!is.null(prm)) defaultArg <- prm
+      paste(name, "= ", defaultArg)
+    }) %>%
     paste(collapse = ", ") %>%
     paste0("alist(", ., ")") %>%
     parse(text = .) %>%
@@ -68,7 +74,7 @@ GetInflow <- function(joint, myArgs) {
   if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflow for ", joint$name))
 
   upstreamResults <- lapply(upstreamJoints, function(upstreamJoint) {
-    upstreamArguments <- myArgs[upstreamJoint$parameters]
+    upstreamArguments <- myArgs[names(upstreamJoint$parameters)]
     res <- do.call(upstreamJoint$fun, upstreamArguments)
     return (res)
   })
@@ -94,7 +100,7 @@ GetConditionalUpstreamJoints <- function(upstreamJoints, myArgs) {
 
 
 CheckCondition <- function(joint, myArgs) {
-  if (length(joint$condition) == 0) return (TRUE)
+  if (length(joint$conditionE) == 0) return (TRUE)
   Evaluate(joint$conditionE, myArgs)
 }
 

@@ -3,7 +3,7 @@ VARIABLE_RESERVED_NAMES_CONST <- c( 'inflow',
                                     'context')
 
 JOINT_TYPES_FLOW <- c('pipe', 'junction')
-JOINT_TYPES_JOINTS <- c( 'processor', 'factory')
+JOINT_TYPES_JOINTS <- c( 'processor')
 JOINT_TYPES_QA <- c('warning', 'error')
 JOINT_TYPES_STRUCTURE <- c('structure', 'module')
 

@@ -267,19 +267,28 @@ SubstituteVariables <- function(node, funArgs) {
 # We define as parameters all variables that are
 # not resolved
 # Store parameters in parameters list
-GetRequiredParameters <- function(node) {
+GetRequiredParameters <- function(joint) {
 
-  myParameterNames <- GetUnresolvedVariables(node)
+  myParameterNames <- GetUnresolvedVariables(joint)
 
-  if (!is.null(node$upstream)) {
-    Get(node$upstream, function(j) j$parameters, simplify = FALSE, nullAsNa = FALSE) %>%
+  if (!is.null(joint$upstream)) {
+    Get(joint$upstream, function(j) names(j$parameters), simplify = FALSE, nullAsNa = FALSE) %>%
       do.call(c, .) %>%
       c(myParameterNames) %>%
       unique ->
       myParameterNames
   }
 
-  return (myParameterNames)
+  tap <- GetTap(joint)
+  myParameters <- tap$parameters
+  for (paramName in myParameterNames) {
+    if (!paramName %in% names(tap$parameters)) {
+      myParameters[paramName] <- list(NULL)
+    }
+  }
+  myParameters <- myParameters[names(myParameters) %in% myParameterNames]
+
+  return (myParameters)
 
 
 }
@@ -287,12 +296,12 @@ GetRequiredParameters <- function(node) {
 
 
 
-GetUnresolvedVariables <- function(node) {
-  variables <- lapply(node$variablesE, function(expression) GetVariablesInExpression(expression))
-  GetVariablesInExpression(node$conditionE) %>% c(variables) -> variables
-  GetVariablesInExpression(node$functionE) %>% c(variables) -> variables
+GetUnresolvedVariables <- function(joint) {
+  variables <- lapply(joint$variablesE, function(expression) GetVariablesInExpression(expression))
+  GetVariablesInExpression(joint$conditionE) %>% c(variables) -> variables
+  GetVariablesInExpression(joint$functionE) %>% c(variables) -> variables
   variables %>% unlist %>% unname %>% extract(., !. %in% VARIABLE_RESERVED_NAMES_CONST) %>% return
-  #GetVariableValue(node, nme)
+  #GetVariableValue(joint, nme)
 }
 
 

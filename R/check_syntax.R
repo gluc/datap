@@ -138,16 +138,6 @@ GetSyntaxDefinition <- function(type = NULL) {
       maxChildren = 0
     )
 
-    res$factory <- list(
-      type = "factory",
-      allowedElements = c("attributes", "function", "condition"),
-      requiredElements = c("function"),
-      allowedParents = c("pipe"),
-      mustHaveParent = TRUE,
-      minChildren = 0,
-      maxChildren = 0
-    )
-
     res$warning <- list(
       type = "warning",
       allowedElements = c("attributes", "function", "condition"),

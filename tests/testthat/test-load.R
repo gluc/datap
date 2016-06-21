@@ -188,7 +188,7 @@ Tap:
       type: processor
       function: .DoP1()
     F2:
-      type: factory
+      type: processor
       function: .DoF2()
     W3:
       type: warning

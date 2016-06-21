@@ -19,7 +19,7 @@ plot.tap <- function(x, ..., pruneFun = NULL) {
 
   SetNodeStyle(x, style = "filled,rounded", fontname = "helvetica", tooltip = GetPlotTooltip, penwidth = 2)
 
-  x$Do(function(node) SetNodeStyle(node, shape = "house", fillcolor = "Green", rank = node$rank, inherit = FALSE, keepExisting = TRUE), filterFun = function(node) node$type %in% c("processor", "factory", "junction"))
+  x$Do(function(node) SetNodeStyle(node, shape = "house", fillcolor = "Green", rank = node$rank, inherit = FALSE, keepExisting = TRUE), filterFun = function(node) node$type %in% c("processor", "junction"))
   x$Do(function(node) SetNodeStyle(node, shape = "box", fillcolor = "Khaki1", rank = node$rank, inherit = FALSE), filterFun = function(node) node$type == "warning")
   x$Do(function(node) SetNodeStyle(node, shape = "box", fillcolor = "Tomato1", rank = node$rank, inherit = FALSE), filterFun = function(node) node$type == "error")
   x$Do(function(node) SetNodeStyle(node, shape = "Mcircle", fillcolor = "Seashell1", rank = node$rank, inherit = FALSE), filterFun = function(node) node$type == "pipe")
