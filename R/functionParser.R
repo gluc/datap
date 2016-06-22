@@ -1,7 +1,7 @@
 
 
 
-#'@export
+
 ParseExpression <- function(expressionString) {
   expressionString <- as.character(expressionString)
   vecs <- Node$new("expression",
@@ -104,6 +104,7 @@ Evaluate <- function(expressionTree, variablesList) {
   }
 
   else if (expressionTree$type == "variable") {
+
     if (!expressionTree$variableName %in% names(variablesList)) stop (paste0("Variable $", expressionTree$variableName, " unknown!"))
     return (variablesList[[expressionTree$variableName]])
   }
@@ -148,10 +149,10 @@ EvaluateNodeBuild <- function(expressionTree, joint, doConst) {
     expressionTree$children <- list()
   } else if (expressionTree$type == "variable") {
     if (doConst) {
-      if (ContainsVariable(expressionTree, "joint")) {
+      if (expressionTree$variableName == "joint") {
         expressionTree$type = "value"
         expressionTree$value = joint
-      } else if (ContainsVariable(expressionTree, "context")) {
+      } else if (expressionTree$variableName == "context") {
         expressionTree$type = "value"
         expressionTree$value = joint$root
       }
@@ -167,8 +168,10 @@ EvaluateNodeBuild <- function(expressionTree, joint, doConst) {
     }
   } else if (expressionTree$type == "argument") {
     #we need the arg construct because of name
-
+    #EvaluateNodeBuild(expressionTree$children[[1]], joint, doConst)
   } else if (expressionTree$type == "fun") {
+    #debug
+    nme <- joint$name
 
     Get(expressionTree$children, function(arg) arg$children[[1]]$type == "value") %>%
       all ->
@@ -185,7 +188,7 @@ EvaluateNodeBuild <- function(expressionTree, joint, doConst) {
       if (is.function(res)) {
         expressionTree$type <- "fun"
         expressionTree$children <- list()
-        expressionTree$funName <- res
+        expressionTree$funName <- res #not really the name, but the actual function in this case
       } else {
         expressionTree$type <- "value"
         expressionTree$children <- list()
@@ -193,7 +196,7 @@ EvaluateNodeBuild <- function(expressionTree, joint, doConst) {
       }
     }
   } else if (expressionTree$type == "expressionTree") {
-    EvaluateNodeBuild(expressionTree$children[[1]], joint, doConst)
+    #EvaluateNodeBuild(expressionTree$children[[1]], joint, doConst)
   } else if (expressionTree$type == "value") {
     return ()
   } else {

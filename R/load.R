@@ -220,42 +220,6 @@ GetSourcesPath <- function(joint, path = ".") {
 
 
 
-# Finds static variables in arguments and replaces them
-# with their values.
-SubstituteVariables <- function(node, funArgs) {
-  #if (identical(node$name, "C")) browser()
-  if (length(funArgs) == 0) return (funArgs)
-  if (node$name == 'SetNames') browser()
-  #parse variables (except @inflow, @joint, etc)
-  for (i in 1:length(funArgs)) {
-    v <- funArgs[[i]]
-
-    if (!v %in% paste0('$', VARIABLE_RESERVED_NAMES_CONST) && (is(v, 'variable') || identical(substr(v, 1, 1), '$'))) {
-      if (!IsMacro(v)) {
-        v <- substr(v, 2, nchar(v))
-        tr <- Traverse(node, traversal = "ancestor", filterFun = function(x) !is.null(x$variables[[v]]))
-        if (length(tr) > 0) {
-          vval <- Get(tr[1], function(x) x$variables[[v]])[[1]]
-          if (mode(funArgs) != "list") {
-            if (length(funArgs) == 1) funArgs <- vval
-            else if (mode(vval) != mode(funArgs)) {
-              mode(vval) <- "list"
-              funArgs[[i]] <- vval
-            }
-          } else {
-            funArgs[[i]] <- vval
-          }
-        }
-      } else {
-        #macro
-        substr(v, 2, nchar(v)) %>% parse(text = .) -> funArgs[[i]]
-      }
-    }
-
-  }
-  return (funArgs)
-}
-
 
 
 

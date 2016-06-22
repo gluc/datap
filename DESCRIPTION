@@ -20,8 +20,7 @@ Imports:
   zoo,
   memoise,
   timeDate,
-  DiagrammeR,
-  stringr
+  DiagrammeR
 Suggests:
   knitr,
   Quandl,

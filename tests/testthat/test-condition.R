@@ -176,7 +176,7 @@ Tap:
 
 
 
-test_that("parameter condition on factory ellipsis", {
+test_that("parameter condition on factory", {
 
   contextString <- "
 TapToBeCalledByRef:
