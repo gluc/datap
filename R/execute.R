@@ -14,9 +14,10 @@ ParseFun <- function(joint) {
     # CallStep is called by downstream, providing parameters
     # It's the R function representation of joint$functionE
     #myArgs <- lapply(joint$parameters, get)
+
     myArgs <- list()
-    for(mvar in names(joint$parameters)) myArgs <- append(myArgs, get(mvar))
-    names(myArgs) <- names(joint$parameters)
+    for(mvar in names(joint$parametersE)) myArgs <- append(myArgs, get(mvar))
+    names(myArgs) <- names(joint$parametersE)
 
     if (joint$type == "warning" ||
         joint$type == "error" ||
@@ -65,10 +66,7 @@ GetFormals <- function(joint) {
 GetParameterFormals <- function(name, joint) {
   prm <- joint$parametersE[[name]]
   defaultArg <- ""
-  if (!is.null(prm)) {
-    if (identical(prm$expression, "value")) defaultArg <- prm$expression$value
-    else defaultArg <- Evaluate(prm)
-  }
+  if (!is.null(prm)) defaultArg <- Deparse(prm)
   paste(name, "= ", defaultArg)
 }
 

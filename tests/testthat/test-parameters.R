@@ -12,9 +12,9 @@ Tap:
 "
   context <- Load(textConnection(contextString))
 
-  expect_equal(context$Tap$parameters %>% length, 1 )
+  expect_equal(context$Tap$parametersE %>% length, 1 )
 
-  expect_equal(context$Tap$parameters , list(v1 = NULL) )
+  expect_equal(context$Tap$parametersE , list(v1 = NULL) )
   expect_equal(formals(context$Tap$tap), alist(v1 = ) %>% as.pairlist())
 
 
@@ -35,9 +35,9 @@ Tap:
 "
   context <- Load(textConnection(contextString))
 
-  expect_equal(context$Tap$parameters %>% length, 1 )
+  expect_equal(context$Tap$parametersE %>% length, 1 )
 
-  expect_equal(context$Tap$parameters , list(v1 = 3) )
+  expect_equal(context$Tap$parametersE$v1$expression$value , 3 )
   expect_equal(formals(context$Tap$tap), alist(v1 = 3) %>% as.pairlist())
 
 
@@ -61,9 +61,9 @@ Tap:
 "
   context <- Load(textConnection(contextString))
 
-  expect_equal(context$Tap$parameters %>% length, 1 )
+  expect_equal(context$Tap$parametersE %>% length, 1 )
 
-  expect_equal(context$Tap$parameters , list(v1 = 3) )
+  expect_equal(context$Tap$parametersE$v1$expression$value , 3 )
   expect_equal(formals(context$Tap$tap), alist(v1 = 3) %>% as.pairlist())
 
 
@@ -87,9 +87,8 @@ Tap:
 "
   context <- Load(textConnection(contextString))
 
-  expect_equal(context$Tap$parameters %>% length, 2 )
+  expect_equal(context$Tap$parametersE %>% length, 2 )
 
-  expect_equal(context$Tap$parameters , list(v2 = 3, v1 = FALSE) )
   expect_equal(formals(context$Tap$tap), alist(v2 = 3, v1 = FALSE) %>% as.pairlist())
 
 
@@ -112,9 +111,8 @@ Tap:
 "
   context <- Load(textConnection(contextString))
 
-  expect_equal(context$Tap$parameters %>% length, 2 )
+  expect_equal(context$Tap$parametersE %>% length, 2 )
 
-  expect_equal(context$Tap$parameters , list(v2 = 3, v1 = NULL) )
   expect_equal(formals(context$Tap$tap), alist(v2 = 3, v1 = ) %>% as.pairlist())
 
 
@@ -142,9 +140,8 @@ Tap:
 "
   context <- Load(textConnection(contextString))
 
-  expect_equal(context$Tap$parameters %>% length, 2 )
+  expect_equal(context$Tap$parametersE %>% length, 2 )
 
-  expect_equal(context$Tap$parameters , list(p3 = NULL, p1 = NULL) )
   expect_equal(formals(context$Tap$tap), alist(p3 = , p1 = ) %>% as.pairlist())
 
 
@@ -169,19 +166,19 @@ Tap:
 "
   context <- Load(textConnection(contextString))
 
-  expect_equal(context$Tap$parameters %>% length, 3 )
+  expect_equal(context$Tap$parametersE %>% length, 3 )
 
-  expect_equal(context$Tap$parameters , list(p1 = NULL, p4 = NULL, p2 = NULL) )
+  expect_equal(context$Tap$parametersE , list(p1 = NULL, p4 = NULL, p2 = NULL) )
   expect_equal(formals(context$Tap$tap), alist(p1 = , p4 = , p2 = ) %>% as.pairlist())
 
 
-  expect_equal(context$Tap$Pipe$parameters , list(p1 = NULL, p4 = NULL, p2 = NULL) )
+  expect_equal(context$Tap$Pipe$parametersE , list(p1 = NULL, p4 = NULL, p2 = NULL) )
   expect_equal(formals(context$Tap$Pipe$fun), alist(p1 = , p4 = , p2 = ) %>% as.pairlist())
 
-  expect_equal(context$Tap$Pipe$F1$parameters , list(p1 = NULL, p4 = NULL, p2 = NULL) )
+  expect_equal(context$Tap$Pipe$F1$parametersE , list(p1 = NULL, p4 = NULL, p2 = NULL) )
   expect_equal(formals(context$Tap$Pipe$F1$fun), alist(p1 = , p4 = , p2 = ) %>% as.pairlist())
 
-  expect_equal(context$Tap$Pipe$F2$parameters , list(p1 = NULL, p4 = NULL) )
+  expect_equal(context$Tap$Pipe$F2$parametersE , list(p1 = NULL, p4 = NULL) )
   expect_equal(formals(context$Tap$Pipe$F2$fun), alist(p1 = , p4 = ) %>% as.pairlist())
 
 
@@ -200,11 +197,11 @@ Tap:
   type: tap
   GetData:
     type: processor
-    function: identity($p1)
+    function: identity(as.Date($p1))
 "
   context <- Load(textConnection(contextString))
 
-  expect_equal(context$Tap$parameters$p1, Sys.Date())
+  expect_equal(context$Tap$tap %>% formals, pairlist(p1 = as.character(Sys.Date())))
 
 })
 
@@ -223,7 +220,8 @@ Tap:
 "
   context <- Load(textConnection(contextString))
 
-  expect_equal(class(context$Tap$parameters$p1), "expression")
+  expect_equal(context$Tap$tap %>% formals, alist(p1 = Sys.Date()) %>% as.pairlist)
+
 
 })
 

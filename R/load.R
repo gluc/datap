@@ -68,8 +68,6 @@ ResolveFlow <- function(tree) {
   #set empty lists
   tree$Do(function(node) node$arguments <- as.list(node$arguments),
           filterFun = function(x) !is.null(x$arguments))
-  tree$Do(function(tapNode) if (is.null(tapNode$parameters)) tapNode$parameters <- list(),
-          filterFun = function(node) identical(node$type, "tap"))
 
   tree$Do(function(node) node$rank <- node$parent$name,
           filterFun = function(x) identical(x$parent$type, "pipe") ||
@@ -125,7 +123,7 @@ ParseTree <- function(tree) {
     Traverse(traversal = function(node) node$upstream,
              filterFun = function(node)!(node$type %in% JOINT_TYPES_STRUCTURE)) %>%
     rev %>%
-    Do(function(node) node$parameters <- GetRequiredParameters(node))
+    Do(function(node) node$parametersE <- GetRequiredParameters(node))
 
 
   Traverse(tree,
@@ -146,7 +144,7 @@ EvaluateBuildTimeExpressions <- function(node, doConst) {
   if (!is.null(node$variablesE)) for (e in node$variablesE) EvaluateExpressionBuild(e, node, doConst)
   if (!is.null(node$conditionE)) EvaluateExpressionBuild(node$conditionE, node, doConst)
   if (!is.null(node$functionE)) EvaluateExpressionBuild(node$functionE, node, doConst)
-  if (!is.null(node$parametersE)) for (e in node$parametersE) EvaluateExpressionBuild(e, node, doConst)
+  if (!is.null(node$parametersE)) for (e in node$parametersE) if (!is.null(e)) EvaluateExpressionBuild(e, node, doConst)
 }
 
 ParseExpressions <- function(expressionsList) {
@@ -238,7 +236,7 @@ GetRequiredParameters <- function(joint) {
   myParameterNames <- GetUnresolvedVariables(joint)
 
   if (!is.null(joint$upstream)) {
-    Get(joint$upstream, function(j) names(j$parameters), simplify = FALSE, nullAsNa = FALSE) %>%
+    Get(joint$upstream, function(j) names(j$parametersE), simplify = FALSE, nullAsNa = FALSE) %>%
       do.call(c, .) %>%
       c(myParameterNames) %>%
       unique ->
@@ -246,9 +244,9 @@ GetRequiredParameters <- function(joint) {
   }
 
   tap <- GetTap(joint)
-  myParameters <- tap$parameters
+  myParameters <- tap$parametersE
   for (paramName in myParameterNames) {
-    if (!paramName %in% names(tap$parameters)) {
+    if (!paramName %in% names(tap$parametersE)) {
       myParameters[paramName] <- list(NULL)
     }
   }

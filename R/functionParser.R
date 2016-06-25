@@ -134,6 +134,58 @@ Evaluate <- function(expressionTree, variablesList) {
 
 }
 
+
+Deparse <- function(expressionTree) {
+  if (expressionTree$type == "R") {
+    return (expressionTree$value)
+  }
+
+  else if (expressionTree$type == "expressionTree") {
+    return (Deparse(expressionTree$children[[1]]))
+  }
+
+  else if (expressionTree$type == "variable") {
+
+    stop (paste0("Variable $", expressionTree$variableName, " unknown!"))
+  }
+
+  else if (expressionTree$type == "argument") return (Deparse(expressionTree$children[[1]]))
+
+  else if (expressionTree$type == "fun") {
+    argList <- Get(nodes = expressionTree$children, attribute = Deparse, simplify = FALSE)
+    argListNames <- Get(expressionTree$children, function(node) if (is.null(node$argumentName)) return("") else return (node$argumentName), simplify = FALSE)
+
+    if (!all(argListNames == "")) names(argList) <- argListNames
+    else names(argList) <- NULL
+
+    if (is.null(argList)) argList <- list()
+
+    args <- paste(argList, sep = " = ", collapse = ", ")
+    fun <- paste0(expressionTree$funName, "(", args, ")")
+
+    return (fun)
+  }
+
+  else if (expressionTree$type == "value") {
+    res <- expressionTree$value
+    if (NeedsQuotes(res)) res <- paste0("'", res, "'")
+    #res <- paste0("'", res, "'")
+    return (res)
+  }
+
+
+
+  stop (paste0("Unknown expression type ", expressionTree$type))
+
+}
+
+NeedsQuotes <- function(value) {
+  if (is.character(value)) return (TRUE)
+  if (is.numeric(value)) return (FALSE)
+  if (is.logical(value)) return (FALSE)
+  return (TRUE)
+}
+
 # This is called build time. Expressions are evaluated where possible
 # and variables are fetched from joint and ancestors. This changes
 # the expression tree upon evaluation.
