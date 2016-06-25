@@ -51,22 +51,29 @@ ParseFun <- function(joint) {
 
 
 
-
-
 GetFormals <- function(joint) {
-  joint$parameters %>%
+  joint$parametersE %>%
     names %>%
-    lapply(function(name) {
-      prm <- joint$parameters[[name]]
-      defaultArg <- ""
-      if (!is.null(prm)) defaultArg <- prm
-      paste(name, "= ", defaultArg)
-    }) %>%
+    lapply(GetParameterFormals, joint) %>%
     paste(collapse = ", ") %>%
     paste0("alist(", ., ")") %>%
     parse(text = .) %>%
     eval
 }
+
+
+GetParameterFormals <- function(name, joint) {
+  prm <- joint$parametersE[[name]]
+  defaultArg <- ""
+  if (!is.null(prm)) {
+    if (identical(prm$expression, "value")) defaultArg <- prm$expression$value
+    else defaultArg <- Evaluate(prm)
+  }
+  paste(name, "= ", defaultArg)
+}
+
+
+
 
 
 GetInflow <- function(joint, myArgs) {

@@ -99,6 +99,31 @@ Tap:
 
 
 
+test_that("adding parameter", {
+  contextString <-"
+
+Tap:
+  parameters:
+    v2: 3
+  type: tap
+  GetData:
+    type: processor
+    function: GetData($v1, $v2)
+"
+  context <- Load(textConnection(contextString))
+
+  expect_equal(context$Tap$parameters %>% length, 2 )
+
+  expect_equal(context$Tap$parameters , list(v2 = 3, v1 = NULL) )
+  expect_equal(formals(context$Tap$tap), alist(v2 = 3, v1 = ) %>% as.pairlist())
+
+
+})
+
+
+
+
+
 
 
 test_that("parameter in tap", {
@@ -165,4 +190,40 @@ Tap:
 
 
 
+
+test_that("build time parameter expression", {
+  contextString <-"
+
+Tap:
+  parameters:
+    p1: Sys.Date()
+  type: tap
+  GetData:
+    type: processor
+    function: identity($p1)
+"
+  context <- Load(textConnection(contextString))
+
+  expect_equal(context$Tap$parameters$p1, Sys.Date())
+
+})
+
+
+
+test_that("tap time parameter expression", {
+  contextString <-"
+
+Tap:
+  parameters:
+    p1: .Sys.Date()
+  type: tap
+  GetData:
+    type: processor
+    function: identity($p1)
+"
+  context <- Load(textConnection(contextString))
+
+  expect_equal(class(context$Tap$parameters$p1), "expression")
+
+})
 
