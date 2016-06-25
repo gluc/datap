@@ -130,11 +130,11 @@ ParseTree <- function(tree) {
            filterFun = function(node) !is.null(node$type) && node$type %in% JOINT_TYPES_FUN) -> traversal
 
   traversal %>% rev %>%
-    Do(function(joint) joint$fun <- ParseFun(joint))
+    Do(function(joint) joint$tap <- ParseFun(joint))
 
   tree$Do(EvaluateBuildTimeExpressions, doConst = TRUE)
 
-  tree$Do(fun = function(node) node$tap <- node$children[[1]]$fun,
+  tree$Do(fun = function(node) node$tap <- node$children[[1]]$tap,
           filterFun = function(node) identical(node$type, "tap"))
 
   tree$TapNames <- function() names(tree$children)

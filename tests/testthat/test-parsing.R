@@ -52,9 +52,9 @@ Tap:
   res <- context$Tap$tap(5, prod = 4, add = 1)
   expect_equal(res, 24)
 
-  expect_equal(formals(context$Tap$Pipe$Prod$fun), alist(number = , add = , prod = ) %>% as.pairlist())
+  expect_equal(formals(context$Tap$Pipe$Prod$tap), alist(number = , add = , prod = ) %>% as.pairlist())
 
-  expect_equal(formals(context$Tap$Pipe$Sum$fun), alist(number = , add = ) %>% as.pairlist())
+  expect_equal(formals(context$Tap$Pipe$Sum$tap), alist(number = , add = ) %>% as.pairlist())
 
 
 })

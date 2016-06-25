@@ -346,7 +346,7 @@ CheckSyntaxVariables <- function(joint) {
 
 
 CheckSyntaxFunction <- function(joint) {
-  fnct <- joint$fun
+  fnct <- joint$tap
   if (!is.null(fnct)) {
     AssertSyntax(is.character(fnct),
                  joint,

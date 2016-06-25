@@ -14,7 +14,7 @@ ParseFun <- function(joint) {
     # CallStep is called by downstream, providing parameters
     # It's the R function representation of joint$functionE
     #myArgs <- lapply(joint$parameters, get)
-
+    #browser()
     myArgs <- list()
     for(mvar in names(joint$parametersE)) myArgs <- append(myArgs, get(mvar))
     names(myArgs) <- names(joint$parametersE)
@@ -79,8 +79,8 @@ GetInflow <- function(joint, myArgs) {
   if (length(upstreamJoints) == 0) stop(paste0("Cannot find @inflow for ", joint$name))
 
   upstreamResults <- lapply(upstreamJoints, function(upstreamJoint) {
-    upstreamArguments <- myArgs[names(upstreamJoint$parameters)]
-    res <- do.call(upstreamJoint$fun, upstreamArguments)
+    upstreamArguments <- myArgs[names(upstreamJoint$parametersE)]
+    res <- do.call(upstreamJoint$tap, upstreamArguments)
     return (res)
   })
   if (length(upstreamJoints) == 1) upstreamResults <- upstreamResults[[1]]

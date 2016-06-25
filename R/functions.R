@@ -186,7 +186,7 @@ Cache <- function(joint, timeoutSec) {
   us <- joint$upstream
   if (length(us) == 0) stop(paste0("Cannot cache ", joint$name, "! It has no upstream joint."))
   if (length(us) > 1) stop(paste0("Cannot cache ", joint$name, "! It has ", length(us), " upstream joints."))
-  f <- us[[1]]$fun
+  f <- us[[1]]$tap
   return ( memoise(f, ~timeout(timeoutSec)) )
 }
 
@@ -199,7 +199,7 @@ Cache <- function(joint, timeoutSec) {
 #' @export
 ForgetCache <- function(joint, inflow) {
   ds <- joint$Navigate(joint$downstream)
-  f <- ds$fun
+  f <- ds$tap
   forget(f)
   invisible (inflow)
 }

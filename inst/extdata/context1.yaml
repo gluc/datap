@@ -10,7 +10,7 @@ modules:
       function: zoo::na.locf($inflow)
     NA Ratio:
       type: warning
-      function: NaRatio($infow, $series, $maxNaRatio)
+      function: NaRatio($inflow, $series, $maxNaRatio)
   Quandle and Yahoo download: &QYPipe
     type: pipe
     attributes:
@@ -21,7 +21,7 @@ modules:
         from Yahoo, do NA handling and
         more. Return value: an xts object
     Cache:
-      type: factory
+      type: processor
       function: Cache($joint, 3600)
     GetSeries:
       type: processor
@@ -40,7 +40,7 @@ modules:
           function: MinLength(timeseries = $inflow, minLength = 10)
         DownloadQuandl:
           type: processor
-          function: Quandl::Quandl(code = $quandlCode, type = 'xts')
+          function: .Quandl::Quandl(code = $quandlCode, type = 'xts')
       Yahoo:
         type: pipe
         MinLength:
@@ -51,7 +51,7 @@ modules:
           function: SetNames(x = $inflow, names = c('Open', 'High', 'Low', 'Close', 'Volume', 'Adjusted Close') )
         DownloadYahoo:
           type: processor
-          function: quantmod::getSymbols(Symbols = $yahooSymbol, auto.assign = FALSE)
+          function: .quantmod::getSymbols(Symbols = $yahooSymbol, auto.assign = FALSE)
 ## taps
 Closing Prices:
   type: structure
@@ -75,7 +75,6 @@ Closing Prices:
         doBackfill: TRUE
       variables:
         #variableName: value
-        series: $series
         maxNaRatio: $maxNaRatioDefault
         yahooSymbol: '^GSPC'
         quandlCode: 'YAHOO/INDEX_GSPC'
@@ -96,7 +95,6 @@ Closing Prices:
         description: |
           Apple stock price
       variables:
-        series: '$series'
         maxNaRatio: '$maxNaRatioDefault'
         yahooSymbol: "AAPL"
         quandlCode: "YAHOO/AAPL"
@@ -106,7 +104,6 @@ Closing Prices:
       attributes:
         longname: "Microsoft"
       variables:
-        series: '$series'
         maxNaRatio: 0.0
         yahooSymbol: "MSFT"
         quandlCode: "YAHOO/MSFT"
@@ -118,8 +115,8 @@ Closing Prices:
     Ones:
       type: tap
       parameters:
-        startDate: '$startDateDefault'
-        endDate: '$Today()'
+        startDate: $startDateDefault
+        endDate: Sys.Date()
       GetOnes:
         type: processor
         function: Ones(startDate = $startDate, endDate = $endDate, colname = $series)
@@ -135,7 +132,7 @@ Technical Indicators:
     parameters:
       tapPath:
       periods: 10
-      ...:
+      #...:
     pipe:
       type: pipe
       SMA:
@@ -143,7 +140,8 @@ Technical Indicators:
         function: TTR::SMA(x = $inflow, n = $periods)
       Tap:
         type: processor
-        function: Tap(context = $context, tapPath = $tapPath, $...)
+        #function: Tap(context = $context, tapPath = $tapPath, $...)
+        function: identity(1)
   MA:
     type: tap
     attributes:

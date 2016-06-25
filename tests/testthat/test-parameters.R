@@ -173,13 +173,13 @@ Tap:
 
 
   expect_equal(context$Tap$Pipe$parametersE , list(p1 = NULL, p4 = NULL, p2 = NULL) )
-  expect_equal(formals(context$Tap$Pipe$fun), alist(p1 = , p4 = , p2 = ) %>% as.pairlist())
+  expect_equal(formals(context$Tap$Pipe$tap), alist(p1 = , p4 = , p2 = ) %>% as.pairlist())
 
   expect_equal(context$Tap$Pipe$F1$parametersE , list(p1 = NULL, p4 = NULL, p2 = NULL) )
-  expect_equal(formals(context$Tap$Pipe$F1$fun), alist(p1 = , p4 = , p2 = ) %>% as.pairlist())
+  expect_equal(formals(context$Tap$Pipe$F1$tap), alist(p1 = , p4 = , p2 = ) %>% as.pairlist())
 
   expect_equal(context$Tap$Pipe$F2$parametersE , list(p1 = NULL, p4 = NULL) )
-  expect_equal(formals(context$Tap$Pipe$F2$fun), alist(p1 = , p4 = ) %>% as.pairlist())
+  expect_equal(formals(context$Tap$Pipe$F2$tap), alist(p1 = , p4 = ) %>% as.pairlist())
 
 
 })
