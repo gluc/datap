@@ -35,28 +35,9 @@ print.tap <- function(x, ...) {
     names(vs) <- paste0("var", as.character(1:nvar))
   } else vs <- NULL
 
-
-  #parameters
-  npar <- x$Get(function(j) length(j$parameters)) %>% max
-
-  if (npar > 0) {
-    ps <- lapply(1:npar, function(index) {
-      function(node) {
-        if (length(node$parameters) < index) return ("")
-        nm <- names(node$parameters)[index]
-        vl <- node$parameters[[index]]
-        if (length(nm) > 0 && length(vl) > 0) sep = ": "
-        else sep = ""
-        res <- paste(nm, vl, sep = sep)
-        return (res)
-      }
-    })
-    names(ps) <- paste0("par", as.character(1:npar))
-  } else ps <- NULL
-
   printTap <- function(node) formals(node$tap) %>% paste(names(.), ., sep = " = ", collapse = ", ") %>% paste0("tap(", ., ")")
 
-  args <- c(args, "condition", ps, vs, "function", tap = printTap)
+  args <- c(args, "condition", vs, "function", tap = printTap)
   do.call(NextMethod, args)
 
 }

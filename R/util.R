@@ -19,6 +19,9 @@ do.call.intrnl <- function(what, args) {
       fun <- fn[[2]]
       envir <- asNamespace(fn[[1]])
     }
+  } else {
+    fun <- what
+    envir <- parent.frame()
   }
 
   do.call(fun, as.list(args), envir = envir)

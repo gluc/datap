@@ -37,7 +37,7 @@ Tap:
 
   expect_equal(context$Tap$parametersE %>% length, 1 )
 
-  expect_equal(context$Tap$parametersE$v1$expression$value , 3 )
+  expect_equal(context$Tap$parametersE$v1$children[[1]]$value , 3 )
   expect_equal(formals(context$Tap$tap), alist(v1 = 3) %>% as.pairlist())
 
 
@@ -63,7 +63,7 @@ Tap:
 
   expect_equal(context$Tap$parametersE %>% length, 1 )
 
-  expect_equal(context$Tap$parametersE$v1$expression$value , 3 )
+  expect_equal(context$Tap$parametersE$v1$children[[1]]$value , 3 )
   expect_equal(formals(context$Tap$tap), alist(v1 = 3) %>% as.pairlist())
 
 
