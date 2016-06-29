@@ -1,0 +1,26 @@
+language: r
+
+sudo: required
+
+warnings_are_errors: true
+
+r_build_args: 
+r_check_args: --as-cran
+
+r_packages:
+  - rmarkdown
+  - devtools
+
+r_github_packages:
+  - jimhester/covr
+
+after_success:
+  - Rscript -e 'library(covr);codecov()'
+
+notifications:
+  email:
+    on_success: change
+    on_failure: change
+
+env:
+  before_install: echo "options(repos = c(CRAN='http://cran.rstudio.com'))" > ~/.Rprofile
