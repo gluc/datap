@@ -1,5 +1,6 @@
 context("condition")
 
+#devtools::test(filter = "condition")
 
 test_that("parameter condition on processor", {
   contextString <- "
@@ -155,11 +156,11 @@ Tap:
     type: pipe
     Cache:
       type: processor
-      function: Cache(joint = $joint, timeout = 3600)
+      function: .Cache(joint = $joint, timeout = 3600)
       condition: $doCache
     Random:
       type: processor
-      function: .rnorm(n = 1, mean = 0, sd = 1)
+      function: rnorm(n = 1, mean = 0, sd = 1)
 "
 
   context <- Load(textConnection(contextString))
@@ -187,16 +188,16 @@ TapToBeCalledByRef:
     type: pipe
     Cache:
       type: processor
-      function: Cache(joint = $joint, timeout = 3600)
+      function: .Cache(joint = $joint, timeout = 3600)
       condition: $doCache
     Random:
       type: processor
-      function: .rnorm(n = 1, mean = 0, sd = 1)
+      function: rnorm(n = 1, mean = 0, sd = 1)
 TapRef:
   type: tap
   TapCall:
     type: processor
-    function: .Tap(context = $context, tapPath = 'TapToBeCalledByRef', doCache = FALSE)
+    function: Tap(context = $context, tapPath = 'TapToBeCalledByRef', doCache = FALSE)
 "
 
   context <- Load(textConnection(contextString))
@@ -222,14 +223,14 @@ Tap:
     type: pipe
     Cache:
       type: processor
-      function: Cache(joint = $joint, timeout = 3600)
+      function: .Cache(joint = $joint, timeout = 3600)
       condition: $doCache
     Forget:
       type: processor
       function: ForgetCache(joint = $joint, inflow = $inflow)
     Random:
       type: processor
-      function: .rnorm(n = 1, mean = 0, sd = 1)
+      function: rnorm(n = 1, mean = 0, sd = 1)
 "
 
   context <- Load(textConnection(contextString))

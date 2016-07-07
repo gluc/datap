@@ -10,10 +10,10 @@ Tap:
   variables:
     x: a
     'y': 3
-    z: sum(3, 5)
+    z: .sum(3, 5)
   Processor:
     type: processor
-    function: identity(29)
+    function: .identity(29)
 "
 
   context <- Load(textConnection(contextString))

@@ -10,8 +10,8 @@ ParseExpression <- function(expressionString) {
   vecs$.expressionV <- strsplit(expressionString, "")[[1]]
 
   vecs$.pos <- matrix(FALSE, ncol = 8, nrow = length(vecs$.expressionV))
-  colnames(vecs$.pos) <- c("tapTimeFun", "open", "close", "arg", "eq" ,"str", "var", "ws")
-  vecs$.pos[, 'tapTimeFun'] <- (vecs$.expressionV == ".")
+  colnames(vecs$.pos) <- c("eapFunction", "open", "close", "arg", "eq" ,"str", "var", "ws")
+  vecs$.pos[, 'eapFunction'] <- (vecs$.expressionV == ".")
   vecs$.pos[, 'open'] <- (vecs$.expressionV == "(")
   vecs$.pos[, 'close'] <- (vecs$.expressionV == ")")
   vecs$.pos[, 'arg'] <- (vecs$.expressionV == ",")
@@ -23,7 +23,7 @@ ParseExpression <- function(expressionString) {
   vecsChild <- Clone(vecs)
   vecs$AddChildNode(vecsChild)
   vecs$.type <- "expressionTree"
-  vecs$.executionTime <- "aeap"
+  vecs$.executionTime <- "tap"
 
   .ParseExpression(vecsChild)
   return (vecs)
@@ -289,6 +289,7 @@ GetVariablesInExpression <- function(expression) {
 }
 
 ParseFindType <- function(expressionNode, idx) {
+  #argument, fun, variable, R
   while(expressionNode$.pos[idx, 'ws']) idx <- idx + 1
   if (!expressionNode$isRoot && expressionNode$parent$.type == "fun") return ("argument")
 
@@ -306,7 +307,7 @@ ParseFindType <- function(expressionNode, idx) {
 ParseFindArgumentName <- function(expressionNode) {
   idx <- 1
   while(expressionNode$.pos[idx, 'ws']) idx <- idx + 1
-  if (expressionNode$.pos[idx, "tapTimeFun"]) return (idx)
+  if (expressionNode$.pos[idx, "eapFunction"]) return (idx)
   for (i in idx:length(expressionNode$.expressionV)) {
     if (expressionNode$.pos[i, 'eq']) {
       nme <- paste0(expressionNode$.expressionV[idx:(i-1)], collapse = "")
@@ -340,14 +341,19 @@ ParseFindArgEndIdx <- function(vecs, idx) {
 
 ParseExecutionTime <- function(vecs, idx) {
   while(vecs$.pos[idx, 'ws']) idx <- idx + 1
+
   if (vecs$.type == "argument") {
     vecs$.executionTime <- vecs$parent$.executionTime
-  } else if(vecs$.pos[idx, 'tapTimeFun']) {
-    vecs$.executionTime <- "tap"
-    idx <- idx + 1
-  } else {
-    #defaults: as early as possible (aeap)
+  } else if(vecs$.pos[idx, 'eapFunction']) {
     vecs$.executionTime <- "aeap"
+    idx <- idx + 1
+  } else if(vecs$.type %in% c('variable', 'R')) {
+    #argument, fun, variable, R
+    vecs$.executionTime <- 'aeap'
+  } else if (vecs$parent$.executionTime == 'aeap') {
+    vecs$.executionTime <- 'aeap'
+  } else {
+    vecs$.executionTime <- "tap"
   }
 
   return (idx)

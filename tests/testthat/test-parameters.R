@@ -193,7 +193,7 @@ test_that("build time parameter expression", {
 
 Tap:
   parameters:
-    p1: Sys.Date()
+    p1: .Sys.Date()
   type: tap
   GetData:
     type: processor
@@ -212,7 +212,7 @@ test_that("tap time parameter expression", {
 
 Tap:
   parameters:
-    p1: .Sys.Date()
+    p1: Sys.Date()
   type: tap
   GetData:
     type: processor

@@ -18,6 +18,7 @@ ParseFun <- function(joint) {
     myArgs <- list()
     for(mvar in names(joint$parametersE)) myArgs <- append(myArgs, get(mvar))
     names(myArgs) <- names(joint$parametersE)
+    myArgs$joint <- joint
 
     if (joint$type == "warning" ||
         joint$type == "error" ||

@@ -9,7 +9,7 @@ SPX:
   type: tap
   Doit:
     type: processor
-    function: .DoSomething()
+    function: DoSomething()
 "
 
   errorReport <- CheckSyntax(textConnection(contextString))
@@ -91,7 +91,7 @@ RandomCache:
     type: pipe
     Cache:
       type: processor
-      function: Cache(joint = $joint, timeout = 3600)
+      function: .Cache(joint = $joint, timeout = 3600)
     Random:
       type: processor
       function: rnorm(1)
