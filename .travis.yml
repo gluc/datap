@@ -11,6 +11,7 @@ warnings_are_errors: true
 
 r_packages:
   - rmarkdown
+  - methods
 
 r_check_args: --as-cran
 
