@@ -12,6 +12,7 @@ License: GPL (>= 2)
 LazyData: TRUE
 Imports:
   utils,
+  methods,
   yaml,
   magrittr,
   data.tree,
