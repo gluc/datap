@@ -37,8 +37,8 @@ datap is a lightweight DSL (Domain Specific Language) to define configurable, mo
 In practice, each datap setup will consist of the following elements:
 
 1. One or more **datap contexts**. Each context is defined in in a yaml file and contains a series of **taps**. Each tap represents 
-a specific datset, as well as their source and pre-processing steps.
-2. One or more **R packages**, or your own R scripts contianing functions. The R functions do the actual units of work of the pre-processing steps defined in (1), like e.g. downloading data from the internet, data cleaning, merging, etc. The packages are typically datap-agnostic.
+a specific dataset, as well as their source and pre-processing steps.
+2. One or more **R packages**, or your own R scripts containing functions. The R functions do the actual units of work of the pre-processing steps defined in (1), like e.g. downloading data from the internet, data cleaning, merging, etc. The packages are typically datap-agnostic.
 3. The **datap interpreter**, i.e. the R datap package. The interpreter parses the datap context, and maps pre-processing steps defined in (1) to actual library functions available in (2).
 
 This document is about the first part only: the datap context file definition.
@@ -236,6 +236,16 @@ The function syntax is similar to R, with a few differences:
 
 However, you may nest functions, e.g. `sum(2, sum(3, 5))`, or `sum(seq(1, 10))`.
 You may also use named parameters, e.g. `sum(2, 3, na.rm = TRUE)`.
+
+### Package Reference
+
+You can use package notation to refer to a function in a package. For example:
+
+```
+Fill NAs:
+  type: processor
+  function: zoo::na.locf($inflow)
+```
 
 ### Execution Time
 
