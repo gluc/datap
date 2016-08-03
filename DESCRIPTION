@@ -24,6 +24,7 @@ Imports:
 Suggests:
   knitr,
   Quandl,
+  quantmod,
   testthat
 Depends:
     R (>= 3.0)
