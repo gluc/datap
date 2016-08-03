@@ -29,6 +29,7 @@ ParseExpression <- function(expressionString) {
   return (vecs)
 }
 
+#' @import utils
 .ParseExpression <- function(expressionNode) {
   #is this named?
   idx <- ParseFindArgumentName(expressionNode)
