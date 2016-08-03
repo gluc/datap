@@ -253,6 +253,50 @@ Tap:
 
 
 
+test_that("parameter condition on memoisation different params", {
+
+  contextString <- "
+Tap:
+  type: tap
+  parameters:
+    mean:
+    doCache: TRUE
+  Pipe:
+    type: pipe
+    Cache:
+      type: processor
+      function: .Cache(joint = $joint, timeout = 3600)
+      condition: $doCache
+    Forget:
+      type: processor
+      function: ForgetCache(joint = $joint, inflow = $inflow)
+    Random:
+      type: processor
+      function: rnorm(n = 1, mean = $mean, sd = 1)
+"
+
+  context <- Load(textConnection(contextString))
+
+  res1 <- context$Tap$tap(mean = 2)
+  res2 <- context$Tap$tap(mean = 2)
+  expect_equal(res2, res1)
+
+  res3 <- context$Tap$tap(FALSE, mean = 2)
+  expect_false(res3 == res1)
+
+  res4 <- context$Tap$tap(mean = 2)
+  expect_false(res3 == res4)
+
+  res5 <- context$Tap$tap(mean = 3)
+  expect_false(res5 == res4)
+
+
+})
+
+
+
+
+
 test_that("parameter condition multiple", {
 
   contextString <- "

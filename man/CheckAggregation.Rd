@@ -13,7 +13,7 @@ CheckAggregation(con)
 Loads a context definition and checks its syntax.
 }
 \examples{
-filePath <- system.file("extdata", "context1.yaml", package="datapR")
+filePath <- system.file("extdata", "context1.yaml", package="datap")
 errors <- CheckAggregation(filePath)
 print(errors)
 

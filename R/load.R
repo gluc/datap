@@ -8,7 +8,7 @@
 #' @param con a connection containing the meta data
 #'
 #' @examples
-#' filePath <- system.file("extdata", "context1.yaml", package="datapR")
+#' filePath <- system.file("extdata", "context1.yaml", package="datap")
 #' context <- Load(filePath)
 #'
 #' @importFrom yaml yaml.load
@@ -118,7 +118,7 @@ ParseTree <- function(tree) {
 
   tree$Do(EvaluateBuildTimeExpressions, doConst = FALSE)
 
-  #set parameters, starting from source downstream
+  #set parameters, starting from source towards downstream
   tree %>%
     Traverse(traversal = function(node) node$upstream,
              filterFun = function(node)!(node$type %in% JOINT_TYPES_STRUCTURE)) %>%

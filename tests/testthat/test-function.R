@@ -13,7 +13,7 @@ test_that("dot no arg", {
   expect_equal(ex$.type, "fun")
   expect_equal(ex$funName, "Sys.Date")
   expect_equal(ex$height, 1)
-  expect_is(datapR:::Evaluate(ex, list()), "Date")
+  expect_is(datap:::Evaluate(ex, list()), "Date")
 })
 
 
@@ -26,7 +26,7 @@ test_that("single number", {
   expect_equal(class(ex), c("Node", "R6"))
   expect_equal(ex$.type, "R")
 
-  expect_equal(datapR:::Evaluate(ex, list(variable0 = 1, variable1 = 2)), 3)
+  expect_equal(datap:::Evaluate(ex, list(variable0 = 1, variable1 = 2)), 3)
 })
 
 
@@ -38,7 +38,7 @@ test_that("Variable parsing", {
 
   expect_equal(class(ex), c("Node", "R6"))
   expect_equal(ex$.type, "variable")
-  expect_equal(datapR:::Evaluate(ex, list(variable0 = 1, variable1 = 2)), 2)
+  expect_equal(datap:::Evaluate(ex, list(variable0 = 1, variable1 = 2)), 2)
 })
 
 
@@ -50,7 +50,7 @@ test_that("Variable parsing ws", {
 
   expect_equal(class(ex), c("Node", "R6"))
   expect_equal(ex$.type, "variable")
-  expect_equal(datapR:::Evaluate(ex, list(variable0 = 1, variable1 = 2)), 2)
+  expect_equal(datap:::Evaluate(ex, list(variable0 = 1, variable1 = 2)), 2)
 })
 
 
@@ -66,7 +66,7 @@ test_that("Function parsing", {
   expect_equal(fun$count, 1)
   expect_equal(fun$children[[1]]$children[[1]]$expression, 29)
   expect_equal(fun$.executionTime, "aeap")
-  expect_equal(datapR:::Evaluate(fun, list()), 29)
+  expect_equal(datap:::Evaluate(fun, list()), 29)
 })
 
 
@@ -82,7 +82,7 @@ test_that("Function parsing default", {
   expect_equal(fun$count, 1)
   expect_equal(fun$children[[1]]$children[[1]]$expression, 29)
   expect_equal(fun$.executionTime, "tap")
-  expect_equal(datapR:::Evaluate(fun, list()), 29)
+  expect_equal(datap:::Evaluate(fun, list()), 29)
 })
 
 
@@ -97,7 +97,7 @@ test_that("Function parsing ws ", {
   expect_equal(fun$count, 1)
   expect_equal(fun$children[[1]]$children[[1]]$expression, 29)
   expect_equal(fun$.executionTime, "tap")
-  expect_equal(datapR:::Evaluate(fun, list()), 29)
+  expect_equal(datap:::Evaluate(fun, list()), 29)
 })
 
 
@@ -113,7 +113,7 @@ test_that("Function parsing named param", {
   expect_equal(fun$children[[1]]$children[[1]]$expression, 29)
   expect_equal(fun$children[[1]]$.argumentName, "x")
   expect_equal(fun$.executionTime, "tap")
-  expect_equal(datapR:::Evaluate(fun, list()), 29)
+  expect_equal(datap:::Evaluate(fun, list()), 29)
 
 })
 
@@ -130,7 +130,7 @@ test_that("Function parsing string", {
   expect_equal(fun$children[[1]]$children[[1]]$expression, "'29'")
   expect_equal(fun$children[[1]]$.argumentName, "x")
   expect_equal(fun$.executionTime, "tap")
-  expect_equal(datapR:::Evaluate(fun, list()), '29')
+  expect_equal(datap:::Evaluate(fun, list()), '29')
 
 })
 
@@ -148,7 +148,7 @@ test_that("Function parsing string", {
   expect_equal(fun$children[[1]]$children[[1]]$expression, paste0("'", str, "'"))
   expect_equal(fun$children[[1]]$.argumentName, "x")
   expect_equal(fun$.executionTime, "tap")
-  expect_equal(datapR:::Evaluate(fun, list(p1 = 25)), str)
+  expect_equal(datap:::Evaluate(fun, list(p1 = 25)), str)
 
 })
 
@@ -166,7 +166,7 @@ test_that("Function parsing multi", {
   expect_equal(fun$children[[1]]$children[[1]]$expression, 29)
   expect_equal(fun$children[[1]]$.argumentName, "x")
   expect_equal(fun$.executionTime, "tap")
-  expect_equal(datapR:::Evaluate(fun, list()), 55.2)
+  expect_equal(datap:::Evaluate(fun, list()), 55.2)
 
 
 })
@@ -185,8 +185,8 @@ test_that("Function variable", {
   expect_equal(fun$children[[1]]$.argumentName, "x")
   expect_equal(fun$.executionTime, "tap")
 
-  expect_equal(datapR:::Evaluate(fun, list(p1 = 'myval')), 'myval')
-  expect_equal(datapR:::Evaluate(fun, list(p1 = 27)), 27)
+  expect_equal(datap:::Evaluate(fun, list(p1 = 'myval')), 'myval')
+  expect_equal(datap:::Evaluate(fun, list(p1 = 27)), 27)
 
 
 })
@@ -209,7 +209,7 @@ test_that("Function nested", {
   expect_equal(fun$children[[1]]$.argumentName, "x")
   expect_equal(fun$.executionTime, "tap")
 
-  expect_equal(datapR:::Evaluate(fun, list(p1 = 27)), 7)
+  expect_equal(datap:::Evaluate(fun, list(p1 = 27)), 7)
 
 
 })
@@ -224,7 +224,7 @@ test_that("Function nested", {
 
   #ToDataFrameTree(fun, "type", "value", "level")
 
-  expect_equal(datapR:::Evaluate(fun, list()), 15)
+  expect_equal(datap:::Evaluate(fun, list()), 15)
 
 })
 
@@ -238,7 +238,7 @@ test_that("Function nested", {
 
   #ToDataFrameTree(fun, "type", "value", "level")
 
-  expect_equal(datapR:::Evaluate(fun, list(param = 4)), 19)
+  expect_equal(datap:::Evaluate(fun, list(param = 4)), 19)
 
 })
 
@@ -255,7 +255,7 @@ test_that("Function parsing nested multi", {
   expect_equal(fun$children[[2]]$children[[1]]$.executionTime, "tap")
   expect_equal(fun$children[[3]]$children[[1]]$.executionTime, "aeap")
 
-  expect_equal(datapR:::Evaluate(fun, list(p1 = 4, p2 = 3)), 15)
+  expect_equal(datap:::Evaluate(fun, list(p1 = 4, p2 = 3)), 15)
 
 })
 

@@ -199,7 +199,7 @@ Cache <- function(joint, timeoutSec) {
 #' @export
 ForgetCache <- function(joint, inflow) {
   ds <- joint$Navigate(joint$downstream)
-  f <- ds$tap
+  f <- ds$functionE$children[[1]]$funName
   forget(f)
   invisible (inflow)
 }

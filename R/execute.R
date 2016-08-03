@@ -10,8 +10,8 @@ ParseFun <- function(joint) {
     unname ->
     funArgNames
 
-  CallStep <- function() {
-    # CallStep is called by downstream, providing parameters
+  tap <- function() {
+    # tap is called by downstream, providing parameters
     # It's the R function representation of joint$functionE
     #myArgs <- lapply(joint$parameters, get)
     #browser()
@@ -46,9 +46,9 @@ ParseFun <- function(joint) {
   }
 
 
-  formals(CallStep) <- GetFormals(joint)
+  formals(tap) <- GetFormals(joint)
 
-  return (CallStep)
+  return (tap)
 }
 
 

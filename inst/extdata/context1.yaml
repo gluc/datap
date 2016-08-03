@@ -22,10 +22,10 @@ modules:
         more. Return value: an xts object
     Cache:
       type: processor
-      function: Cache($joint, 3600)
+      function: .Cache($joint, 3600)
     GetSeries:
       type: processor
-      function: .magrittr::use_series(a = $inflow, b = $series)
+      function: magrittr::use_series(a = $inflow, b = $series)
     NAs: *NaHandling
     Regularize:
         type: processor
@@ -40,7 +40,7 @@ modules:
           function: MinLength(timeseries = $inflow, minLength = 10)
         DownloadQuandl:
           type: processor
-          function: .Quandl::Quandl(code = $quandlCode, type = 'xts')
+          function: Quandl::Quandl(code = $quandlCode, type = 'xts')
       Yahoo:
         type: pipe
         MinLength:
@@ -51,7 +51,7 @@ modules:
           function: SetNames(x = $inflow, names = c('Open', 'High', 'Low', 'Close', 'Volume', 'Adjusted Close') )
         DownloadYahoo:
           type: processor
-          function: .quantmod::getSymbols(Symbols = $yahooSymbol, auto.assign = FALSE)
+          function: quantmod::getSymbols(Symbols = $yahooSymbol, auto.assign = FALSE)
 ## taps
 Closing Prices:
   type: structure

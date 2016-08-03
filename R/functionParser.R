@@ -242,9 +242,25 @@ EvaluateNodeBuild <- function(expressionTree, joint, doConst) {
       else names(argList) <- NULL
       res <- do.call(expressionTree$funName, argList)
       if (is.function(res)) {
-        expressionTree$.type <- "fun"
-        expressionTree$children <- list()
-        expressionTree$funName <- res #not really the name, but the actual function in this case
+        #this is used e.g. for Cache, where the result of a function is again a function
+
+        # paste("$", names(formals(res)), formals(res), sep = "=") %>%
+        #   gsub("=$", "", .) %>%
+        #   paste(collapse = ", ") %>%
+        #   paste0("function(", ., ")", sep = "") -> frmls
+
+        if (is.null(formals(res))) frmls <- "function()"
+        else paste0("$", names(formals(res))) %>%
+          paste0("function(", ., ")", sep = "") -> frmls
+
+        x <- ParseExpression(frmls)
+        fnct <- x$children[[1]]
+        fnct$.type <- "fun"
+        fnct$funName <- res #not really the name, but the actual function in this case
+        prnt <- expressionTree$parent
+        prnt$children <- list()
+        prnt$AddChildNode(fnct)
+
       } else {
         expressionTree$.type <- "value"
         expressionTree$children <- list()

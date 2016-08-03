@@ -1,4 +1,4 @@
 library(testthat)
 
-test_check("datapR")
+test_check("datap")
 #devtools::test()

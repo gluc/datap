@@ -3,7 +3,7 @@
 #' @param con a connection containing the meta data
 #'
 #' @examples
-#' filePath <- system.file("extdata", "context1.yaml", package="datapR")
+#' filePath <- system.file("extdata", "context1.yaml", package="datap")
 #' errors <- CheckAggregation(filePath)
 #' print(errors)
 #'
