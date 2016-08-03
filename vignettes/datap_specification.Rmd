@@ -32,17 +32,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Scope
 
-datap is a lightweight DSL (Domain Specific Language) to define configurable, modular, and re-usable data processes. datap configurations can be used to acquire, pre-process, quality-assure, and merge data.
-
-datap is language neutral.
+datap is a lightweight DSL (Domain Specific Language) to define configurable, modular, and re-usable data processes in the R programming language. datap contexts can be used to acquire, pre-process, quality-assure, and merge data.
 
 In practice, each datap setup will consist of the following elements:
 
-1. One or more **datap configuration files**. These files define the identifiers of specific data sets, as well as their source and pre-processing steps.
-2. One or more **code libraries** in the programming language of your choice. These libraries do the actual units of work of the pre-processing steps defined in (1), like e.g. loading data into memory, data cleaning, merging, etc. The code libraries are typically datap-agnostic.
-3. A **datap interpreter**, in the programming language of your choice. The interpreter parses the datap configuration file, and maps pre-processing steps defined in (1) to actual library functions available in (2).
+1. One or more **datap contexts**. Each context is defined in in a yaml file and contains a series of **taps**. Each tap represents 
+a specific datset, as well as their source and pre-processing steps.
+2. One or more **R packages**, or your own R scripts contianing functions. The R functions do the actual units of work of the pre-processing steps defined in (1), like e.g. downloading data from the internet, data cleaning, merging, etc. The packages are typically datap-agnostic.
+3. The **datap interpreter**, i.e. the R datap package. The interpreter parses the datap context, and maps pre-processing steps defined in (1) to actual library functions available in (2).
 
-This document is about the first part only: the datap configuration files.
+This document is about the first part only: the datap context file definition.
 
 ## Syntax Description Conventions
 
@@ -50,7 +49,7 @@ In this document, the datap syntax is described using the following conventions:
 
 * `>`: a reference to a specific datap element
 * `[]`: optional elements
-* `$`: replace the following string with an appropriate name
+* `@`: replace the following string with an appropriate name
 * `n*`: repeat the element n times
 * `|`: or
 
@@ -66,23 +65,20 @@ A [`>context`](#context) spans a tree whose nodes are each one the following typ
 * [`>structure`](#structure): organise taps into hierarchies
 * flow control:
 	* [`>pipe`](#pipe): combine joints serially
-	* [`>junction`](#junction): merge multiple joints into one
-* data processing:
-	* [`>processor`](#processor): unit of work (data acquisition and pre-processing)
-	* [`>factory`](#factory): meta-programming construct
+	* [`>junction`](#junction): merge multiple sub-joints into one
+* [`>processor`](#processor): unit of work (data acquisition and pre-processing)
 * error handling:
 	* [`>warning`](#warning)
 	* [`>error`](#error)
 
 Each joint consists of the following:
 
-1. a *type*
-2. named elements, namely
+1. a mandatory *type* (tap, structure, pipe, junction, processor, warning, error)
+2. depending on the type, named elements, namely;
     + [`>attributes`](#attributes)
     + [`>variables`](#variables)
     + [`>parameters`](#parameters)
     + [`>function`](#function)
-    + [`>arguments`](#arguments)
     + [`>condition`](#condition)
 3. other, nested *joints*
 
@@ -100,7 +96,7 @@ A [`>variables`](#variables) section is an *associative list*, called "variables
     n* $variableName: $value
 ```
 
-The names of *[special references](#special-references)* cannot be used as variable name (namely: "inflow", "inflowfun", "context").
+The names of *[special references](#special-references)* cannot be used as variable name (namely: "inflow", "joint", "context").
 
 The *scope* of a variable is the sub-tree spanned by the joint in which the variable is defined. A variable value can be overwritten by an upstream joint.
 
@@ -119,18 +115,13 @@ Closing Prices:
 
 ### *variable* and *parameter* reference
 
-A [`>reference`](#reference) has an *`@`* prefix, and refers to a downstream [`>variable`](#variables) a [`>parameter`](#parameters), a [`>special  reference`](#special-reference), or a [`>macro`](#macro-reference).
+A [`>reference`](#reference) has an *`$`* prefix, and refers to a downstream [`>variable`](#variables), a [`>parameter`](#parameters), or a [`>special  reference`](#special-reference).
 
-You can use a [`>reference`](#reference) in a *parameter*, an *argument*, or in another *variable*.
+You can use a [`>reference`](#reference) in a [`>parameter`](#parameters), a [`>function`](#function), or in another [`>variable`](#variables).
 
 ```
->parameters|>arguments|>variables:
-  $name: @$variableReferenceName
-```
-Or, for unnamed [`>arguments`](#arguments):
-```
->arguments:
-  - @$variableReferenceName
+>parameters|>function|>variables:
+  $name: $@variableReferenceName
 ```
 
 For example:
@@ -141,25 +132,22 @@ AAPL:
   variables:
     #variable reference
     #maxNaRatioDefault must be defined upstream
-    maxNaRatio: '@maxNaRatioDefault'
-    yahooSymbol: AAPL
-    quandlCode: 'YAHOO/AAPL'
-  pipe: *QYPipe
+    maxNaRatio: $maxNaRatioDefault
 ```
 
 ### special reference
 
 The following variable references can be used without defining the variables downstream:
 
-* [`@inflow`](#@inflow)
-* [`@inflowfun`](#@inflowfun)
-* [`@context`](#context)
+* [`$inflow`](#$inflow)
+* [`$joint`](#$joint)
+* [`$context`](#context)
 
 They are *reserved words* and cannot be used as variable names.
 
-#### *`@inflow`*
+#### *`$inflow`*
 
-The *`@inflow`* reference refers to the output of the upstream joints. For a *pipe*, there is a single upstream joint. For a *junction*, there can be more than one. In that case, the *`@inflow`* refers to the set of upstream outputs.
+The *`$inflow`* reference refers to the output of the upstream joints. For a *pipe*, there is a single upstream joint. For a *junction*, there can be more than one. In that case, the *`$inflow`* refers to the set of upstream outputs.
 
 Example:
 
@@ -168,13 +156,13 @@ MinLength:
   type: error
   function: MinLength
   arguments:
-    timeseries: '@inflow'
+    timeseries: '$inflow'
     minLength: 10
 ```
 
-#### *`@inflowfun`*
+#### *`$joint`*
 
-The *`@inflowfun`* reference refers to the upstream joints. This is particularly useful in connection with *[factory](#factory)* joints.
+The *`$joint`* reference refers to the upstream joints. This is particularly useful in connection with *[factory](#factory)* joints.
 
 Example:
 
@@ -183,13 +171,13 @@ Cache:
   type: factory
   function: Cache
   arguments:
-    f: '@inflowfun'
+    f: '$joint'
     timeout: 3600
 ```
 
-#### *`@context`*
+#### *`$context`*
 
-The *`@context`* reference refers to its surrounding [`>context`](#context).
+The *`$context`* reference refers to its surrounding [`>context`](#context).
 
 It is useful to source data from within a [`>context`](#context), and to re-use it as an input into another [`>tap`](#tap).
 
@@ -200,43 +188,98 @@ Tap:
   type: processor
   function: Tap
   arguments:
-    context: '@context'
+    context: '$context'
     tapPath: 'Closing Prices/Indices/SPX'
 ```
 
-### Macro references
-
-A *macro* is a custom function that is interpreted by the *datap interpreter*, and whose return value is substituted into the macro reference dynamically at call-time of the [`>tap`](#tap).
-
-```
-@$macroName(n* $parameterName[,])
-```
-
-For example, the datapR interpreter provides a macro *Today*, taking no arguments. Here, it is used to make sure that the *default argument* for the *endDate* parameter of the *Ones* [`>tap`](#tap) is set to today, dynamically at call-time of the [`>tap`](#tap):
-
-```{YAML}
-Ones:
-  type: tap
-  parameters:
-    startDate: 2000-01-01
-    endDate: '@Today()'
-```
 
 ## *attributes*
 
-Attributes can contain information and/or meta data that is not part of the datap processing. For example, you can store a long name, description, etc.
-The datap interpreter may then provide additional functionality, e.g. to find a [`>tap`](#tap) by attribute.
+Attributes can contain information and/or meta data that is not part of the datap processing. For example, for each data series you can store a long name, description, etc. The datap interpreter then provide additional functionality, e.g. to find a [`>tap`](#tap) by attribute.
 
 ```
 >pipe|>junction|>processor|>factory|>warning|>error|>structure
-  n* $attributeName: $value
+  attributes:
+    n* @attributeName: @value
 ```
 
-> Consequentially, attributes are any key value pair for which the key name is not "parameters" or "variables". Also, an attribute cannot be a named associative list, otherwise it would be interpreted as a structure.
+## *function*
+
+### Definition
+
+Functions are mapped to normal R functions. 
+
+In case of a [`>processor`](#processor), the function actually does the unit of work and passes on the result to the downstream joint. 
+
+In case of an [`>error`](#error), or [`>warning`](#warning), the function contains the logic to test for the error condition. 
+
+In case of an [`>attribute`](#attribute), [`>variable`](#variable) or [`>parameter`](#parameter) the function 
+
+```
+>processor|>error|>warning
+  function: @functionName(n* arg1 [= @default1])
+```
+and
+
+```
+>attribute|>variable|>parameter
+  @name: @functionName(n* arg1 [= @default1])
+```
+
+### Syntax
+
+The function syntax is similar to R, with a few differences:
+
+1. variables can be used, but they must be referenced using '$'. e.g. `sum(2, $param1)`
+2. string literals are interpreted as is, without the necessity of quotes, e.g. `paste(a, b)
+3. eclipsis (three dots / ...) are not supported
+
+However, you may nest functions, e.g. `sum(2, sum(3, 5))`, or `sum(seq(1, 10))`.
+You may also use named parameters, e.g. `sum(2, 3, na.rm = TRUE)`.
+
+### Execution Time
+
+By default, functions are executed on *tap time*, i.e. when a user calls a tap. However, you may provide the
+interpreter with a directive to execute the function already at *build time*, i.e. when reading the context file
+and creating the context. This is defined by a `.` preceding the function name. 
+
+For example, the following variable takes on a new value each time the downstream tap is called:
+
+```
+variables:
+  time: Sys.time()
+```
+
+To avoid that, you can use the dot-directive:
+
+```
+variables:
+  time: .Sys.time()
+```
+
+
+However, if the function expression
+contains references to elements that are available at tap time only, then the dot-directive is ignored.
+For example:
+
+```
+MyStructure:
+  type: structure
+  variables:
+    time: Sys.time()
+  Substructure:
+    type: structure
+    variables:
+      # $time cannot be resolved at build time, so . is
+      # ignored and the execution time is tap
+      yesterday: .subtract($time, -24*60*60)
+```
+
+
 
 ## Joints
 
-Joints are the building blocks of any datap configuration, as explained in the *[Context](#context)* section.
+Joints are the building blocks of any datap context, as explained in the *[Context](#context)* section.
 
 ### *structure*
 
@@ -248,8 +291,8 @@ Joints are the building blocks of any datap configuration, as explained in the *
 In terms of data processing, structures are of no relevance.
 
 ```{r, echo=FALSE, comment=""}
-library(datapR)
-s <- datapR:::GetSyntaxDefinition()
+library(datap)
+s <- datap:::GetSyntaxDefinition()
 print(s$structure)
 ```
 
@@ -278,11 +321,14 @@ print(s$tap)
 
 #### *parameters*
 
-A [`>parameter`](#parameter) allows a user to provide an argument when calling a [`>tap`](#tap).
+A [`>tap`](#tap) may have 0 to n [`>parameters`](#parameters), allowing the caller of the tap to provide tap arguments.
 
-A [`>tap`](#tap) may have 0 to n parameters.
+By default, when you define a [`>tap`](#tap) in a [`>context`](#context), all non-resolved upstream function parameters are added as [`>parameter`](#parameters) to the  [`>tap`](#tap). 
 
-Parameters may have *default arguments*.
+However, you may also wish to define [`>parameters`](#parameters) explicitly, mainly for the following reasons:
+
+* to define the order of the parameters
+* to provide default arguments for parameters 
 
 ```
 >tap
@@ -295,75 +341,26 @@ For example:
 ```{YAML}
 AAPL: #tap name
   type: tap
-  attributes:
-    description: Apple Inc. Stock
-    used by: chris
   parameters:
     startDate: 2000-01-01
-    endDate: @Today()
+    endDate: Sys.Date()
     includeWeekends:
-  #upstream:
-  pipe: *Quandl
 ```
 
 ### *processor*
 
-A [`>processor`](#processor) defines a unit of work, such as data acquisition and pre-processing.
+Processors are the work-horse of a [`>tap`](#tap). Each [`>processor`](#processor) defines a unit of work, such as data acquisition, cleaning, or other forms of pre-processing. 
 
 ```{r, echo=FALSE, comment=""}
 print(s$tap)
 ```
 
-#### *function*
-
-A datap [`>function`](#function) is a directive to the datap interpreter how a [`>processor`](#processor), [`>error`](#error), or [`>warning`](#warning) is mapped to an actual function in the actual code library.
-
-```
->processor|>error|>warning
-  function: $functionName
-```
-
-> Without an interpreter and a code library, the functionName has no semantic. It is just a name!
-
-#### *arguments*
-
-The [`>arguments`](#arguments) section defines the arguments that are passed to [`>function`].
-
-The arguments can be *named* or *unnamed*:
-
-```
->processor|>error|>warning
-  arguments:
-    n* - $argument | n* $parameterName: $argument
-```
-
-Example with named arguments:
-
-```{YAML}
-DownloadQuandl:
-  type: processor
-  function: Quandl::Quandl
-  arguments:
-    code: '@quandlCode'
-    type: xts
-```
-
-Example with unnamed arguments:
-
-```{YAML}
-DownloadQuandl:
-  type: processor
-  function: Quandl::Quandl
-  arguments:
-    - '@quandlCode'
-    - xts
-```
 
 ### *error* and *warning*
 
 [`>error`](#error) and [`>warning`](#warning) joints allow testing the results of the upstream [`>processor`](#processor) joint.
 
-[`>error`](#error) and [`>warning`](#warning) joints are pass-through: the downstream @inflow and @inflowfun variable references the joint's upstream joint.
+[`>error`](#error) and [`>warning`](#warning) joints are pass-through: the downstream $inflow and $joint variable references the joint's upstream joint.
 
 An [`>error`](#error) condition is a directive to the interpreter to stop execution and display an error message.
 A [`>warning`](#warning) condition is a directive to continue execution, and display a warning message.
@@ -384,7 +381,7 @@ MinLength:
   type: error
   function: MinLength
   arguments:
-    timeseries: '@inflow'
+    timeseries: '$inflow'
     minLength: 10
 ```
 
@@ -409,12 +406,12 @@ Cache:
   type: factory
   function: Cache
   arguments:
-    f: '@inflowfun'
+    f: '$joint'
     timeout: 3600
 ```
 
 > Interpretation: The *function* of the upstream joint is passed into the Cache function as its *f* argument. *Cache* is expected to be a function factory that returns, as
-> an output a memoised version of @inflowfun.
+> an output a memoised version of $joint.
 
 
 ### *pipe*
@@ -435,12 +432,12 @@ NA handling: &NaHandling
     type: processor
     function: zoo::na.locf
     arguments:
-      object: '@inflow'
+      object: '$inflow'
   NA Ratio:
     type: warning
     function: NaRatio
     arguments:
-      timeseries: '@inflow'
+      timeseries: '$inflow'
       variable: '@series'
       maxRatio: '@maxNaRatio'
 ```
@@ -478,12 +475,12 @@ modules:
       type: processor
       function: zoo::na.locf
       arguments:
-        object: '@inflow'
+        object: '$inflow'
     NA Ratio:
       type: warning
       function: NaRatio
       arguments:
-        timeseries: '@inflow'
+        timeseries: '$inflow'
         variable: '@series'
         maxRatio: '@maxNaRatio'
 
@@ -492,7 +489,7 @@ modules:
 # Example
 
 ```{r, echo = FALSE, comment = ""}
-filePath <- system.file("extdata", "context1.yaml", package="datapR")
+filePath <- system.file("extdata", "context1.yaml", package="datap")
 yamlString <- paste0(readLines(filePath), collapse = "\n")
 cat(yamlString)
 

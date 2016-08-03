@@ -54,7 +54,7 @@ print.datapsyntax <- function(x, ...) {
   res <- paste0(res, '\n')
 
   #jointname
-  res <- paste0(res, '  $', x$type, "Name:", "\n")
+  res <- paste0(res, '  @', x$type, "Name:", "\n")
 
   #type
   res <- paste0(res, '    type: ', x$type, "\n")
