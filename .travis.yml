@@ -1,15 +1,18 @@
 language: r
+cache: packages
+r:
+  - oldrel
+  - release
+  - devel
 
-sudo: required
+sudo: false
 
 warnings_are_errors: true
 
-r_build_args: 
-r_check_args: --as-cran
-
 r_packages:
   - rmarkdown
-  - devtools
+
+r_check_args: --as-cran
 
 r_github_packages:
   - jimhester/covr
@@ -21,6 +24,3 @@ notifications:
   email:
     on_success: change
     on_failure: change
-
-env:
-  before_install: echo "options(repos = c(CRAN='http://cran.rstudio.com'))" > ~/.Rprofile
