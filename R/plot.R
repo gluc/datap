@@ -5,7 +5,7 @@
 #' @param pruneFun a function to prune the plot. See \code{\link[data.tree]{Prune}}
 #'
 #' @examples
-#' filePath <- system.file("extdata", "context1.yaml", package="datapR")
+#' filePath <- system.file("extdata", "context1.yaml", package="datap")
 #' context <- Load(filePath)
 #' plot(context$FindNode('SPX'))
 #'
