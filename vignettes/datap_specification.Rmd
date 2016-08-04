@@ -14,9 +14,17 @@ vignette: |
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  error = FALSE,
+  tidy = FALSE,
+  cache = FALSE
+)
+
 options("getSymbols.warning4.0"=FALSE)
 ```
+
 
 > “If I could do it all again, I'd be a plumber.”
 >
@@ -31,22 +39,21 @@ options("getSymbols.warning4.0"=FALSE)
 - Date: 2016-04-21
 - License:
 
-## Scope
+## Introduction
 
-datap is a lightweight DSL (Domain Specific Language) to define configurable, modular, and re-usable data processes for use in the R programming language. datap contexts can be used to acquire, pre-process, quality-assure, and merge data.
+datap is a lightweight DSL (Domain Specific Language) to define configurable, modular, and re-usable data processes for use in the R programming language. datap contexts can be used to acquire, pre-process, quality-assure, and merge data in a way that is completely transparent to the user.
 
 In practice, each datap setup will consist of the following elements:
 
-1. One or more **datap contexts**. Each context is defined in in a yaml file and contains a series of hierarchically organised **taps**. Each tap represents a specific dataset, together with its source and pre-processing steps.
-2. One or more **R packages**, or your own R scripts containing functions. The R functions do the actual units of work of the pre-processing steps defined in (1), like e.g. downloading data from the internet, data cleaning, merging, etc. The packages are typically datap-agnostic.
-3. The **datap interpreter**, i.e. the R datap package. The interpreter parses the datap context, and maps pre-processing steps defined in (1) to actual library functions available in (2), so as to provide - for each tap - an R function that can be called by the user of the library.
+1. A **datap context**
+2. R functions (your own or from packages)
+3. The **datap interpreter**, i.e. te R datap package
 
-This document is about the first part only: the datap context file definition.
-
-## Short Example
+Event though this document is about the first part mainly (the datap context file definition), let us briefly illustrate what is behind each of the three elements.
 
 ### datap context
 
+Each context is defined in in a yaml file and contains a series of hierarchically organised **taps**. Each tap represents a specific dataset, together with its source and pre-processing steps.
 Consider the following, very simple context that is provided with the datap package as *context2.yaml*:
 
 
@@ -59,8 +66,13 @@ cat(yamlString)
 
 It defines three taps (Apple, Tesla, and S&P500), and organises stocks and indices neatly in a hierarchical structure.
 
+### R functions
+
+The R functions do the actual units of work of the pre-processing steps defined in (1), like e.g. downloading data from the internet, data cleaning, merging, etc. The packages are typically datap-agnostic.
+
 ### datap interpreter
 
+The interpreter parses the datap context, and maps pre-processing steps defined in (1) to actual library functions available in (2), so as to provide - for each tap - an R function that can be called by the user of the library.
 If you have the datap package installed, you can load the context into memory using the `datap::Load` function:
 
 ```{r}
