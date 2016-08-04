@@ -56,7 +56,7 @@ modules:
 Closing Prices:
   type: structure
   variables:
-    series: Close
+    series: "'Close'"
     maxNaRatioDefault: 0.25
   Indices:
     type: structure
@@ -76,8 +76,8 @@ Closing Prices:
       variables:
         #variableName: value
         maxNaRatio: $maxNaRatioDefault
-        yahooSymbol: '^GSPC'
-        quandlCode: 'YAHOO/INDEX_GSPC'
+        yahooSymbol: "'^GSPC'"
+        quandlCode: "'YAHOO/INDEX_GSPC'"
       Pipe:
         type: pipe
         DateRange:
@@ -96,22 +96,22 @@ Closing Prices:
           Apple stock price
       variables:
         maxNaRatio: '$maxNaRatioDefault'
-        yahooSymbol: "AAPL"
-        quandlCode: "YAHOO/AAPL"
+        yahooSymbol: "'AAPL'"
+        quandlCode: "'YAHOO/AAPL'"
       pipe: *QYPipe
     MSFT:
       type: tap
       attributes:
-        longname: "Microsoft"
+        longname: "'Microsoft'"
       variables:
         maxNaRatio: 0.0
-        yahooSymbol: "MSFT"
-        quandlCode: "YAHOO/MSFT"
+        yahooSymbol: "'MSFT'"
+        quandlCode: "'YAHOO/MSFT'"
       pipe: *QYPipe
   Fabricated:
     type: structure
     variables:
-      startDateDefault: 1990-01-01
+      startDateDefault: "'1990-01-01'"
     Ones:
       type: tap
       parameters:

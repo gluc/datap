@@ -105,4 +105,50 @@ RandomCache:
 
 })
 
+test_that("variable", {
+  contextString <- "
+cars:
+  type: tap
+  load:
+    type: processor
+    function: identity(mtcars)
+"
+
+  context <- Load(textConnection(contextString))
+  res <- context$cars$tap()
+  expect_equal(res, mtcars)
+
+})
+
+
+test_that("string", {
+  contextString <- "
+cars:
+  type: tap
+  load:
+    type: processor
+    function: identity('mtcars')
+"
+
+  context <- Load(textConnection(contextString))
+  res <- context$cars$tap()
+  expect_equal(res, "mtcars")
+
+})
+
+
+test_that("complex", {
+  contextString <- "
+cars:
+  type: tap
+  load:
+    type: processor
+    function: identity(mtcars[1])
+"
+
+  context <- Load(textConnection(contextString))
+  res <- context$cars$tap()
+  expect_equal(res, mtcars[1])
+
+})
 

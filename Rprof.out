@@ -1,6 +1,0 @@
-sample.interval=20000
-"strsplit" "summaryRprof" 
-"strsplit" "summaryRprof" 
-"unique.default" "FUN" "lapply" "summaryRprof" 
-"lazyLoadDBfetch" "str" "doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" "try" "eval" "eval" "withVisible" "evalVis" "capture.output" ".rs.valueFromStr" "doTryCatch" "tryCatchOne" "tryCatchList" "tryCatch" ".rs.valueDescription" "<Anonymous>" 
-"ls" "FUN" "lapply" ".rs.objectsOnSearchPath" ".rs.getCompletionsSearchPath" "Reduce" "<Anonymous>" 

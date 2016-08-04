@@ -1,0 +1,21 @@
+#simple context
+stocks:
+  type: structure
+  Apple:
+    type: tap
+    download:
+      type: processor
+      function: Quandl::Quandl(code = 'YAHOO/AAPL', type = 'xts')
+  Tesla:
+    type: tap
+    download:
+      type: processor
+      function: Quandl::Quandl(code = 'YAHOO/TSLA', type = 'xts')
+indices:
+  type: structure
+  S&P500:
+    type: tap
+    download:
+      type: processor
+      function: quantmod::getSymbols(Symbols = '^GSPC', auto.assign = FALSE)
+

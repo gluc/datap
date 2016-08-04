@@ -8,7 +8,7 @@ test_that("GetVariableVal", {
 Tap:
   type: tap
   variables:
-    x: a
+    x: \"'a'\"
     'y': 3
     z: .sum(3, 5)
   Processor:

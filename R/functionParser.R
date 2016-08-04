@@ -30,6 +30,7 @@ ParseExpression <- function(expressionString) {
 }
 
 #' @import utils
+#' @import methods
 .ParseExpression <- function(expressionNode) {
   #is this named?
   idx <- ParseFindArgumentName(expressionNode)
@@ -50,7 +51,7 @@ ParseExpression <- function(expressionString) {
     expressionNode$.variableName <- ParseVariableName(expressionNode, idx)
   } else if (expressionNode$.type == "R") {
     expressionNode$expression <- paste0(expressionNode$.expressionV, collapse = "") %>% trimws %>% type.convert(as.is = TRUE)
-    if (is.character(expressionNode$expression) && ! grepl("['\"].*['\"]$", expressionNode$expression, perl = TRUE)) expressionNode$expression <- paste0("'", expressionNode$expression, "'")
+    #if (is.character(expressionNode$expression) && ! grepl("['\"].*['\"]$", expressionNode$expression, perl = TRUE)) expressionNode$expression <- paste0("'", expressionNode$expression, "'")
   } else stop (paste0("Unkown expressionNode type ", expressionNode$.type))
 
 }

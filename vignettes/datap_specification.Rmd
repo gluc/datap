@@ -15,6 +15,7 @@ vignette: |
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options("getSymbols.warning4.0"=FALSE)
 ```
 
 > “If I could do it all again, I'd be a plumber.”
@@ -32,16 +33,65 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Scope
 
-datap is a lightweight DSL (Domain Specific Language) to define configurable, modular, and re-usable data processes in the R programming language. datap contexts can be used to acquire, pre-process, quality-assure, and merge data.
+datap is a lightweight DSL (Domain Specific Language) to define configurable, modular, and re-usable data processes for use in the R programming language. datap contexts can be used to acquire, pre-process, quality-assure, and merge data.
 
 In practice, each datap setup will consist of the following elements:
 
-1. One or more **datap contexts**. Each context is defined in in a yaml file and contains a series of **taps**. Each tap represents 
-a specific dataset, as well as their source and pre-processing steps.
+1. One or more **datap contexts**. Each context is defined in in a yaml file and contains a series of hierarchically organised **taps**. Each tap represents a specific dataset, together with its source and pre-processing steps.
 2. One or more **R packages**, or your own R scripts containing functions. The R functions do the actual units of work of the pre-processing steps defined in (1), like e.g. downloading data from the internet, data cleaning, merging, etc. The packages are typically datap-agnostic.
-3. The **datap interpreter**, i.e. the R datap package. The interpreter parses the datap context, and maps pre-processing steps defined in (1) to actual library functions available in (2).
+3. The **datap interpreter**, i.e. the R datap package. The interpreter parses the datap context, and maps pre-processing steps defined in (1) to actual library functions available in (2), so as to provide - for each tap - an R function that can be called by the user of the library.
 
 This document is about the first part only: the datap context file definition.
+
+## Short Example
+
+### datap context
+
+Consider the following, very simple context that is provided with the datap package as *context2.yaml*:
+
+
+```{r, echo = FALSE, comment = ""}
+filePath <- system.file("extdata", "context2.yaml", package="datap")
+yamlString <- paste0(readLines(filePath), collapse = "\n")
+cat(yamlString)
+
+```
+
+It defines three taps (Apple, Tesla, and S&P500), and organises stocks and indices neatly in a hierarchical structure.
+
+### datap interpreter
+
+If you have the datap package installed, you can load the context into memory using the `datap::Load` function:
+
+```{r}
+library(datap)
+filePath <- system.file("extdata", "context2.yaml", package="datap")
+context <- Load(filePath)
+```
+
+The context looks like this:
+
+```{r}
+context
+```
+
+And you can directly navigate to a tap and tap into the data:
+
+```{r}
+teslaBars <- context$stocks$Tesla$tap()
+head(teslaBars)
+```
+
+For the user of the context, it is completely transparent where the data is coming from and how it is pre-processed. For example, the S&P500 index is downloaded from Yahoo finance and not from Quandl. Yet, the user accesses the dataset in exactly the same way:
+
+```{r}
+spx <- context$indices$`S&P500`$tap()
+head(spx$GSPC.Open)
+```
+
+However, in a real world scenario additional pre-processing steps are necessary to make sure that the structure of the data is indeed the same for datasets from different sources.
+
+In general, however, your data can be anything, and it can come from any source (the internet, a file, from memory, by calling an R function, or generated on the fly by your context, etc.).
 
 ## Syntax Description Conventions
 
@@ -50,7 +100,7 @@ In this document, the datap syntax is described using the following conventions:
 * `>`: a reference to a specific datap element
 * `[]`: optional elements
 * `@`: replace the following string with an appropriate name
-* `n*`: repeat the element n times
+* `n*`: repeat the element n times, where n can be any positive number
 * `|`: or
 
 # datap Syntax
@@ -62,7 +112,6 @@ A datap [`>context`](#context) is defined in a single YAML document. A YAML docu
 A [`>context`](#context) spans a tree whose nodes are each one the following types of *joints*:
 
 * [`>tap`](#tap): entry point to data, can have parameters
-* [`>structure`](#structure): organise taps into hierarchies
 * flow control:
 	* [`>pipe`](#pipe): combine joints serially
 	* [`>junction`](#junction): merge multiple sub-joints into one
@@ -70,17 +119,19 @@ A [`>context`](#context) spans a tree whose nodes are each one the following typ
 * error handling:
 	* [`>warning`](#warning)
 	* [`>error`](#error)
+* [`>module`](#module): define re-usable pipes
+* [`>structure`](#structure): organise taps into hierarchies
 
 Each joint consists of the following:
 
 1. a mandatory *type* (tap, structure, pipe, junction, processor, warning, error)
-2. depending on the type, named elements, namely;
+2. named elements, namely (depending on the [`>joint`](#Joints) type);
     + [`>attributes`](#attributes)
     + [`>variables`](#variables)
     + [`>parameters`](#parameters)
     + [`>function`](#function)
     + [`>condition`](#condition)
-3. other, nested *joints*
+3. other, nested [`>joints`](#Joints)
 
 The flow of data is from leafs towards the root, and ends at a [`>tap`](#tap). Thus, each sub-tree below a [`>tap`](#tap) defines the processing steps of a [`>tap`](#tap). In line with data flow, we use the term *upstream* to denote joints that are processed before a given joint. We use *downstream* to denote joints that are processed after a given joint.
 
@@ -96,7 +147,7 @@ A [`>variables`](#variables) section is an *associative list*, called "variables
     n* $variableName: $value
 ```
 
-The names of *[special references](#special-references)* cannot be used as variable name (namely: "inflow", "joint", "context").
+The names of *[special references](#special-reference)* cannot be used as variable name (namely: "inflow", "joint", "context").
 
 The *scope* of a variable is the sub-tree spanned by the joint in which the variable is defined. A variable value can be overwritten by an upstream joint.
 
@@ -117,10 +168,10 @@ Closing Prices:
 
 A [`>reference`](#reference) has an *`$`* prefix, and refers to a downstream [`>variable`](#variables), a [`>parameter`](#parameters), or a [`>special  reference`](#special-reference).
 
-You can use a [`>reference`](#reference) in a [`>parameter`](#parameters), a [`>function`](#function), or in another [`>variable`](#variables).
+You can use a [`>reference`](#reference) in a [`>parameter`](#parameters) or in a [`>variable`](#variables).
 
 ```
->parameters|>function|>variables:
+>parameters|>variables:
   $name: $@variableReferenceName
 ```
 
@@ -134,6 +185,22 @@ AAPL:
     #maxNaRatioDefault must be defined upstream
     maxNaRatio: $maxNaRatioDefault
 ```
+
+You can also use a [`>reference`](#reference) in a [`>function`](#function).
+
+For example:
+
+```{YAML}
+AAPL:
+  type: tap
+  variables:
+    ticker: "'YAHOO/AAPL'"
+  download:
+    type: processor
+    function: Quandl::Quandl(code = $ticker, type = 'xts')
+```
+
+>function|
 
 ### special reference
 
@@ -230,9 +297,8 @@ and
 
 The function syntax is similar to R, with a few differences:
 
-1. variables can be used, but they must be referenced using '$'. e.g. `sum(2, $param1)`
-2. string literals are interpreted as is, without the necessity of quotes, e.g. `paste(a, b)
-3. eclipsis (three dots / ...) are not supported
+1. datap variables can be used, but they must be referenced using '$'. e.g. `sum(2, $param1)`
+2. eclipsis (three dots / ...) are not supported
 
 However, you may nest functions, e.g. `sum(2, sum(3, 5))`, or `sum(seq(1, 10))`.
 You may also use named parameters, e.g. `sum(2, 3, na.rm = TRUE)`.
