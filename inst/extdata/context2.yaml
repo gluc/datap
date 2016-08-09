@@ -8,13 +8,25 @@ stocks:
       function: Quandl::Quandl(code = 'YAHOO/AAPL', type = 'xts')
   Tesla:
     type: tap
-    download:
-      type: processor
-      function: Quandl::Quandl(code = 'YAHOO/TSLA', type = 'xts')
+    attributes:
+      long-name: Tesla Stock
+    pipe:
+      type: pipe
+      backfill:
+        type: processor
+        function: zoo::na.locf($inflow)
+      Regularize:
+        type: processor
+        function: Regularize(xts = $inflow)
+      download:
+        type: processor
+        function: Quandl::Quandl(code = 'YAHOO/TSLA', type = 'xts')
 indices:
   type: structure
   S&P500:
     type: tap
+    attributes:
+      long-name: Standard and Poors 500 Index
     download:
       type: processor
       function: quantmod::getSymbols(Symbols = '^GSPC', auto.assign = FALSE)

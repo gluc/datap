@@ -41,7 +41,7 @@ options("getSymbols.warning4.0"=FALSE)
 
 ## Introduction
 
-datap is a lightweight DSL (Domain Specific Language) to define configurable, modular, and re-usable data processes for use in the R programming language. datap contexts can be used to acquire, pre-process, quality-assure, and merge data in a way that is completely transparent to the user.
+datap is a lightweight DSL (Domain Specific Language) to define configurable, modular, and re-usable data processes for use in the R programming language. use datap contexts to acquire, pre-process, quality-assure, merge and cache any data, of any shape, from any source. Organise your data hierarchically, and access it with a simple, standard api. 
 
 In practice, each datap setup will consist of the following elements:
 
@@ -53,7 +53,8 @@ Event though this document is about the first part mainly (the datap context fil
 
 ### datap context
 
-Each context is defined in in a yaml file and contains a series of hierarchically organised **taps**. Each tap represents a specific dataset, together with its source and pre-processing steps.
+Each context is defined in in a yaml file and contains a series of hierarchically organised **taps**. Each tap represents a specific dataset. Below a tap, you define the data source and pre-processing steps.
+
 Consider the following, very simple context that is provided with the datap package as *context2.yaml*:
 
 
@@ -72,8 +73,9 @@ The R functions do the actual units of work of the pre-processing steps defined 
 
 ### datap interpreter
 
-The interpreter parses the datap context, and maps pre-processing steps defined in (1) to actual library functions available in (2), so as to provide - for each tap - an R function that can be called by the user of the library.
-If you have the datap package installed, you can load the context into memory using the `datap::Load` function:
+The interpreter parses the datap context, and maps pre-processing steps defined in (1) to actual library functions available in (2). Once your context is loaded into memory, you get - for each tap - an R function that can be called to access a data set.
+
+Once you have the datap package installed, you can load the context into memory using the `datap::Load` function:
 
 ```{r}
 library(datap)
@@ -81,13 +83,14 @@ filePath <- system.file("extdata", "context2.yaml", package="datap")
 context <- Load(filePath)
 ```
 
-The context looks like this:
+The context can be printed:
 
 ```{r}
 context
 ```
 
-And you can directly navigate to a tap and tap into the data:
+
+And you can directly navigate to a tap and fetch the data set:
 
 ```{r}
 teslaBars <- context$stocks$Tesla$tap()
@@ -101,7 +104,7 @@ spx <- context$indices$`S&P500`$tap()
 head(spx$GSPC.Open)
 ```
 
-However, in a real world scenario additional pre-processing steps are necessary to make sure that the structure of the data is indeed the same for datasets from different sources.
+However, in a real world scenario additional pre-processing steps are necessary if you want to make sure that the structure of the data is also the same for datasets from different sources.
 
 In general, however, your data can be anything, and it can come from any source (the internet, a file, from memory, by calling an R function, or generated on the fly by your context, etc.).
 
