@@ -42,26 +42,40 @@
 <p>-- Albert Einstein</p>
 </blockquote>
 
-<p>Define the entire data context for your project in a single yaml file. Wherever the source. Whatever the format.</p>
+<h2>
+<a id="datap-in-10-seconds" class="anchor" href="#datap-in-10-seconds" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>datap in 10 seconds</h2>
 
-<p>Namely:</p>
+<p>Define all your data needs for your R project in a single yaml file. Wherever the source. Whatever the format. </p>
+
+<p>Use the datap API to load your data into your R session.</p>
+
+<p>Share your datap contexts, add them to your source code repository, or keep various versions for development and production.</p>
+
+<h2>
+<a id="datap-in-30-seconds" class="anchor" href="#datap-in-30-seconds" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>datap in 30 seconds</h2>
+
+<p>Within your datap context (i.e. the datap yaml file), you can</p>
 
 <ol>
 <li>define data processing <strong>pipes</strong>:
 
 <ol>
-<li>where is your data coming from (internet, file, db, memory, etc.)</li>
-<li>how should your data be pre-processed</li>
+<li>Where is your data coming from? (internet, file, db, memory, etc.)</li>
+<li>How should your data be pre-processed? (cleaning, plausibility checking, missing value handling, etc.)</li>
 </ol>
 </li>
 <li>define <strong>taps</strong> by
 
 <ol>
 <li>giving short id's to your datasets</li>
-<li>use them to get your data into R using a single, consistent API</li>
+<li>organise your datasets into hierarchies</li>
 </ol>
 </li>
 </ol>
+
+<p>Once you defined your datap context, you can call your taps from R
+    1. by accessing a single, consistent API
+    4. to load your data into an R session</p>
         </article>
       </div>
     </div>
