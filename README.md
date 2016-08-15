@@ -128,3 +128,6 @@ head(spx$GSPC.Open)
 
 However, in a real world scenario, you may want to make sure data structure is uniform accross taps. You can do this by adding additional pre-processing steps. This, in a nutshell, is what constitutes the bells and whistles of datap.
 
+# More Information
+
+Make sure you check out the [[Wiki]] and the package vignettes!

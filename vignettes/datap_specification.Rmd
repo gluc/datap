@@ -3,10 +3,14 @@ title: "datap Specification"
 author: "Christoph Glur"
 date: '`r Sys.Date()`'
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '5'
   html_document:
     toc: yes
     toc_depth: 5
-  pdf_document:
+  md_document:
+    variant: markdown_github
     toc: yes
     toc_depth: '5'
 vignette: |
