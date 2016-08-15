@@ -46,8 +46,9 @@ datap is a lightweight DSL (Domain Specific Language) to define configurable, mo
 In practice, each datap setup will consist of the following elements:
 
 1. A **datap context**
-2. R functions (your own or from packages)
+2. R functions (from R packages, or also your own)
 3. The **datap interpreter**, i.e. te R datap package
+4. Your R code with which you access your data, by calling API function on the datap interpreter
 
 Event though this document is about the first part mainly (the datap context file definition), let us briefly illustrate what is behind each of the three elements.
 
@@ -69,11 +70,11 @@ It defines three taps (Apple, Tesla, and S&P500), and organises stocks and indic
 
 ### R functions
 
-The R functions do the actual units of work of the pre-processing steps defined in (1), like e.g. downloading data from the internet, data cleaning, merging, etc. The packages are typically datap-agnostic.
+The R functions do the actual units of work of the pre-processing steps defined in (1), like e.g. downloading data from the internet (or from a file, database, or in-memory cache), data cleaning, merging, etc. The packages are typically datap-agnostic.
 
 ### datap interpreter
 
-The interpreter parses the datap context, and maps pre-processing steps defined in (1) to actual library functions available in (2). Once your context is loaded into memory, you get - for each tap - an R function that can be called to access a data set.
+The interpreter parses the datap context, and maps pre-processing steps defined in (1) to actual library functions available in (2). 
 
 Once you have the datap package installed, you can load the context into memory using the `datap::Load` function:
 
@@ -89,8 +90,9 @@ The context can be printed:
 context
 ```
 
+### R code to access data
 
-And you can directly navigate to a tap and fetch the data set:
+Once your context is loaded into memory, you get - for each tap - an R function that can be called to access a data set. You can then directly navigate to a tap and fetch the data set:
 
 ```{r}
 teslaBars <- context$stocks$Tesla$tap()
@@ -115,7 +117,7 @@ In this document, the datap syntax is described using the following conventions:
 * `>`: a reference to a specific datap element
 * `[]`: optional elements
 * `@`: replace the following string with an appropriate name
-* `n*`: repeat the element n times, where n can be any positive number
+* `n*`: repeat the following element n times, where n can be any positive number
 * `|`: or
 
 # datap Syntax

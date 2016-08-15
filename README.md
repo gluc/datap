@@ -28,6 +28,7 @@ In practice, each datap setup will consist of the following elements:
 1. A datap context, i.e. a YAML file following a few specific rules
 2. R functions (your own or from packages)
 3. The datap interpreter, i.e. the R datap package
+4. Client code, calling the datap API on the context to load data into your R session
 
 ## datap context
 
