@@ -43,7 +43,7 @@
 </blockquote>
 
 <h2>
-<a id="datap-in-10-seconds" class="anchor" href="#datap-in-10-seconds" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>datap in 10 seconds</h2>
+<a id="datap-in-30-seconds" class="anchor" href="#datap-in-30-seconds" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>datap in 30 seconds</h2>
 
 <p>Define all your data needs for your R project in a single yaml file. Wherever the source. Whatever the format. </p>
 
@@ -52,7 +52,7 @@
 <p>Share your datap contexts, add them to your source code repository, or keep various versions for development and production.</p>
 
 <h2>
-<a id="datap-in-30-seconds" class="anchor" href="#datap-in-30-seconds" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>datap in 30 seconds</h2>
+<a id="datap-in-2-minutes" class="anchor" href="#datap-in-2-minutes" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>datap in 2 minutes</h2>
 
 <p>Within your datap context (i.e. the datap yaml file), you can</p>
 
@@ -64,18 +64,74 @@
 <li>How should your data be pre-processed? (cleaning, plausibility checking, missing value handling, etc.)</li>
 </ol>
 </li>
-<li>define <strong>taps</strong> by
+<li>define data <strong>taps</strong> by
 
 <ol>
 <li>giving short id's to your datasets</li>
-<li>organise your datasets into hierarchies</li>
+<li>organising your datasets into hierarchies</li>
 </ol>
 </li>
 </ol>
 
-<p>Once you defined your datap context, you can call your taps from R
-    1. by accessing a single, consistent API
-    4. to load your data into an R session</p>
+<p>For example, a (simple) datap context might look like this:</p>
+
+<div class="highlight highlight-source-yaml"><pre><span class="pl-s"><span class="pl-ent">stocks:</span></span>
+  <span class="pl-s"><span class="pl-ent">type:</span> <span class="pl-s">structure</span></span>
+  <span class="pl-s"><span class="pl-ent">Apple:</span></span>
+    <span class="pl-s"><span class="pl-ent">type:</span> <span class="pl-s">tap</span></span>
+    <span class="pl-s"><span class="pl-ent">download:</span></span>
+      <span class="pl-s"><span class="pl-ent">type:</span> <span class="pl-s">processor</span></span>
+      <span class="pl-s"><span class="pl-ent">function:</span> <span class="pl-s">Quandl::Quandl(code = 'YAHOO/AAPL', type = 'xts')</span></span>
+  <span class="pl-s"><span class="pl-ent">Tesla:</span></span>
+    <span class="pl-s"><span class="pl-ent">type:</span> <span class="pl-s">tap</span></span>
+    <span class="pl-s"><span class="pl-ent">download:</span></span>
+      <span class="pl-s"><span class="pl-ent">type:</span> <span class="pl-s">processor</span></span>
+      <span class="pl-s"><span class="pl-ent">function:</span> <span class="pl-s">Quandl::Quandl(code = 'YAHOO/TSLA', type = 'xts')</span></span>
+<span class="pl-s"><span class="pl-ent">indices:</span></span>
+  <span class="pl-s"><span class="pl-ent">type:</span> <span class="pl-s">structure</span></span>
+  <span class="pl-s"><span class="pl-ent">S&amp;P500:</span></span>
+    <span class="pl-s"><span class="pl-ent">type:</span> <span class="pl-s">tap</span></span>
+    <span class="pl-s"><span class="pl-ent">download:</span></span>
+      <span class="pl-s"><span class="pl-ent">type:</span> <span class="pl-s">processor</span></span>
+      <span class="pl-s"><span class="pl-ent">function:</span> <span class="pl-s">quantmod::getSymbols(Symbols = '^GSPC', auto.assign = FALSE)</span></span></pre></div>
+
+<p>It defines three taps (Apple, Tesla, and S&amp;P500), and organises stocks and indices neatly in a hierarchical structure.</p>
+
+<p>Save this file in your project.</p>
+
+<p>Once you defined your datap context, you can call your taps from R to load your data into an R session by accessing a single, consistent API. </p>
+
+<div class="highlight highlight-source-r"><pre>library(<span class="pl-smi">datap</span>)
+<span class="pl-smi">filePath</span> <span class="pl-k">&lt;-</span> <span class="pl-s"><span class="pl-pds">"</span>C:<span class="pl-cce">\p</span>rojects<span class="pl-cce">\d</span>atap<span class="pl-cce">\c</span>ontext.yaml<span class="pl-pds">"</span></span>)
+<span class="pl-smi">context</span> <span class="pl-k">&lt;-</span> Load(<span class="pl-smi">filePath</span>)</pre></div>
+
+<p>The context looks like this:</p>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">context</span></pre></div>
+
+<pre><code>##        levelName
+## 1 context       
+## 2  ¦--stocks    
+## 3  ¦   ¦--Apple 
+## 4  ¦   °--Tesla 
+## 5  °--indices   
+## 6      °--S&amp;P500
+</code></pre>
+
+<p>And you can directly navigate to a tap to fetch the data:</p>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">teslaBars</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">context</span><span class="pl-k">$</span><span class="pl-smi">stocks</span><span class="pl-k">$</span><span class="pl-smi">Tesla</span><span class="pl-k">$</span>tap()
+head(<span class="pl-smi">teslaBars</span>)</pre></div>
+
+<div class="highlight highlight-source-yaml"><pre><span class="pl-c">##             Open  High   Low Close   Volume Adjusted Close</span>
+<span class="pl-c">## 2010-06-29 19.00 25.00 17.54 23.89 18766300          23.89</span>
+<span class="pl-c">## 2010-06-30 25.79 30.42 23.30 23.83 17187100          23.83</span>
+<span class="pl-c">## 2010-07-01 25.00 25.92 20.27 21.96  8218800          21.96</span>
+<span class="pl-c">## 2010-07-02 23.00 23.10 18.71 19.20  5139800          19.20</span>
+<span class="pl-c">## 2010-07-06 20.00 20.00 15.83 16.11  6866900          16.11</span>
+<span class="pl-c">## 2010-07-07 16.40 16.63 14.98 15.80  6921700          15.80</span></pre></div>
+
+<p>If, at a later stage, you change your data source, or your pre-processing steps, the consuming code will not have to know.</p>
         </article>
       </div>
     </div>
