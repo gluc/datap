@@ -7,7 +7,7 @@
 #' @examples
 #' filePath <- system.file("extdata", "context1.yaml", package="datap")
 #' context <- Load(filePath)
-#' plot(context$FindNode('SPX'))
+#' plot(data.tree::FindNode(context, 'SPX'))
 #'
 #' @importFrom data.tree Clone SetGraphStyle SetEdgeStyle SetNodeStyle
 #' @importFrom DiagrammeR grViz
@@ -77,7 +77,7 @@ ToGraphViz <- function(root, direction = c("climb", "descend"), pruneFun = NULL)
                                           pruneFun = pruneFun,
                                           myargs,
                                           papa = function(node) {
-                                                    ds <- node$Navigate(node$downstream)
+                                                    ds <- data.tree::Navigate(node, node$downstream)
                                                     if (anu) res <- ds$name
                                                     else res <- ds$pathString
                                                     return (res)

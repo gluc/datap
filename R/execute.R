@@ -99,7 +99,7 @@ GetConditionalUpstreamJoints <- function(upstreamJoints, myArgs) {
     isCondition <- CheckCondition(upstreamJoint, myArgs)
     #if (!is.logical(isCondition)) browser()
     if(isCondition) return (upstreamJoint)
-    upstreamJoints <- upstreamJoint$Navigate(GetSourcesPath(upstreamJoint, path = "."))$upstream
+    upstreamJoints <- data.tree::Navigate(upstreamJoint, GetSourcesPath(upstreamJoint, path = "."))$upstream
     return (GetConditionalUpstreamJoints(upstreamJoints, myArgs))
   })
 }

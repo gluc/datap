@@ -57,11 +57,11 @@ CreateRawTree <- function(lol) {
 ResolveFlow <- function(tree) {
 
   #prune modules
-  tree$Prune(pruneFun = function(node) !identical(node$type, "module"))
+  data.tree::Prune(tree, pruneFun = function(node) !identical(node$type, "module"))
 
   #prune branches without a tap ()
   #really necessary?
-  tree$Prune(pruneFun = function(node) {
+  data.tree::Prune(tree, pruneFun = function(node) {
     any(node$Get("type") == "tap", na.rm = TRUE) || any(node$Get("type", traversal = "ancestor") == "tap", na.rm = TRUE)
   })
 
@@ -95,7 +95,7 @@ ParseTree <- function(tree) {
   #data.tree:::print.Node(tree, ds = function(joint) paste0(joint$downstream, collapse = "|"))
 
   tree$Do(function(joint) {
-    ds <- joint$Navigate(joint$downstream)
+    ds <- data.tree::Navigate(joint, joint$downstream)
     ds$upstream[[joint$name]] <- joint
   },
   filterFun = isNotRoot)
