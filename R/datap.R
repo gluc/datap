@@ -7,7 +7,7 @@
 #' library(datap)
 #' filePath <- system.file("extdata", "context1.yaml", package="datap")
 #' context <- Load(filePath)
-#' context
+#'
 #' context$`Closing Prices`$Indices$SPX
 #' plot(context$`Closing Prices`$Indices$SPX)
 #' spx <- context$`Closing Prices`$Indices$SPX$tap()
