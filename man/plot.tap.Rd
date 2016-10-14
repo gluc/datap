@@ -19,7 +19,7 @@ Plot a timeseries or a module
 \examples{
 filePath <- system.file("extdata", "context1.yaml", package="datap")
 context <- Load(filePath)
-plot(context$FindNode('SPX'))
+plot(data.tree::FindNode(context, 'SPX'))
 
 }
 

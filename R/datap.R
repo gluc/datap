@@ -10,8 +10,8 @@
 #' context
 #' context$`Closing Prices`$Indices$SPX
 #' plot(context$`Closing Prices`$Indices$SPX)
-#' context$`Closing Prices`$Indices$SPX$tap()
-#' context$`Closing Prices`$Indices$SPX$tap(dteRange = "/")
+#' spx <- context$`Closing Prices`$Indices$SPX$tap()
+#' spxFullRange <- context$`Closing Prices`$Indices$SPX$tap(dteRange = "/")
 #'
 #'
 #' @docType package

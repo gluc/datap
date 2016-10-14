@@ -198,7 +198,7 @@ Cache <- function(joint, timeoutSec) {
 #' @importFrom memoise forget
 #' @export
 ForgetCache <- function(joint, inflow) {
-  ds <- joint$Navigate(joint$downstream)
+  ds <- data.tree::Navigate(joint, joint$downstream)
   f <- ds$functionE$children[[1]]$funName
   forget(f)
   invisible (inflow)

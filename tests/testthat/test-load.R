@@ -23,7 +23,7 @@ SPX:
 
   context <- Load(textConnection(contextString))
 
-  flow <- context$Get(function(joint) joint$Navigate(joint$downstream)$name, filterFun = isNotRoot)
+  flow <- context$Get(function(joint) data.tree::Navigate(joint, joint$downstream)$name, filterFun = isNotRoot)
   expected <- c(SPX = "context", pipe = "SPX", source = "pipe", junction = "source", doA = "junction", doB = "junction")
   expect_equal(flow, expected)
 
@@ -56,7 +56,7 @@ SPX:
 
   context <- Load(textConnection(contextString))
 
-  flow <- context$Get(function(joint) joint$Navigate(joint$downstream)$name, filterFun = isNotRoot)
+  flow <- context$Get(function(joint) data.tree::Navigate(joint, joint$downstream)$name, filterFun = isNotRoot)
   expected <- c(SPX = "context", pipe1 = "SPX", source = "pipe1", pipe2 = "source", doA = "pipe2", doB = "doA", final = "doB")
   expect_equal(flow, expected)
 
@@ -92,7 +92,7 @@ SPX:
 
   context <- Load(textConnection(contextString))
 
-  flow <- context$Get(function(joint) joint$Navigate(joint$downstream)$name, filterFun = isNotRoot)
+  flow <- context$Get(function(joint) data.tree::Navigate(joint, joint$downstream)$name, filterFun = isNotRoot)
   expected <- c(SPX = "context", pipe1 = "SPX", source = "pipe1", junction = "source", `pipe1.1` = "junction", doA = "pipe1.1", doB = "doA", doC = "junction")
   expect_equal(flow, expected)
 
@@ -138,7 +138,7 @@ SPX:
 
   context <- Load(textConnection(contextString))
 
-  flow <- context$Get(function(joint) joint$Navigate(joint$downstream)$name, filterFun = isNotRoot)
+  flow <- context$Get(function(joint) data.tree::Navigate(joint, joint$downstream)$name, filterFun = isNotRoot)
   expected <- c(SPX = "context", pipe1 = "SPX", source = "pipe1", junction = "source", `pipe1.1` = "junction", doA = "pipe1.1", doB = "doA", doC = "junction", doD = "doC", doE = "doC", doF = "doC")
   expect_equal(flow, expected)
 
@@ -168,7 +168,7 @@ Closing:
 "
 
   context <- Load(textConnection(contextString))
-  flow <- context$Get(function(joint) joint$Navigate(joint$downstream)$name, filterFun = isNotRoot)
+  flow <- context$Get(function(joint) data.tree::Navigate(joint, joint$downstream)$name, filterFun = isNotRoot)
   expected <- c(Closing = "context", Old = "Closing", X1 = "Old", X1 = "X1", New = "Closing", X2 = "New", X2 = "X2") #fill in
   expect_equal(flow, expected)
 })
